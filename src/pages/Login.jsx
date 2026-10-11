@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LogIn, Lock, Mail, AlertCircle, ArrowRight, Sun, Moon, Send, CheckCircle2 } from 'lucide-react';
+import { LogIn, Lock, Mail, AlertCircle, ArrowRight, Sun, Moon } from 'lucide-react';
 
 export function Login({ onNavigateToCadastro }) {
-  const { login, reenviarConfirmacao } = useAuth();
+  const { login } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
-  const [contaNaoVerificada, setContaNaoVerificada] = useState(false);
   const [carregando, setCarregando] = useState(false);
-  const [reenviando, setReenviando] = useState(false);
-  const [mensagemReenvio, setMensagemReenvio] = useState('');
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -24,30 +21,11 @@ export function Login({ onNavigateToCadastro }) {
     try {
       setCarregando(true);
       setErro('');
-      setContaNaoVerificada(false);
-      setMensagemReenvio('');
       await login(email, senha);
     } catch (err) {
       setErro(err.message || 'Falha ao autenticar.');
-      if (err.nao_verificado || err.message?.includes('não foi confirmada') || err.message?.includes('não verificado')) {
-        setContaNaoVerificada(true);
-      }
     } finally {
       setCarregando(false);
-    }
-  }
-
-  async function handleReenviarConfirmacao() {
-    if (!email) return;
-    try {
-      setReenviando(true);
-      setMensagemReenvio('');
-      await reenviarConfirmacao(email);
-      setMensagemReenvio('Link de confirmação reenviado para seu e-mail institucional!');
-    } catch (err) {
-      setMensagemReenvio(err.message || 'Erro ao reenviar e-mail de confirmação.');
-    } finally {
-      setReenviando(false);
     }
   }
 
@@ -74,7 +52,7 @@ export function Login({ onNavigateToCadastro }) {
           </div>
           <h1 style={styles.title}>
             <span style={{ color: 'var(--color-primary)' }}>IFPE</span>{' '}
-            <span style={{ color: 'var(--color-accent)' }}>Olinda</span> Hub
+            <span style={{ color: 'var(--color-accent)' }}>Olinda</span> Conecta
           </h1>
           <p style={styles.subtitle}>
             Acesse a comunidade discente do Campus Olinda
@@ -84,29 +62,7 @@ export function Login({ onNavigateToCadastro }) {
         {erro && (
           <div style={styles.alertError}>
             <AlertCircle size={18} style={{ flexShrink: 0 }} />
-            <div style={{ flex: 1 }}>
-              <div>{erro}</div>
-              {contaNaoVerificada && (
-                <div style={{ marginTop: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={handleReenviarConfirmacao}
-                    disabled={reenviando}
-                    style={styles.alertActionBtn}
-                  >
-                    <Send size={13} />
-                    <span>{reenviando ? 'Reenviando...' : 'Reenviar E-mail de Confirmação'}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {mensagemReenvio && (
-          <div style={styles.alertSuccess}>
-            <CheckCircle2 size={16} />
-            <span>{mensagemReenvio}</span>
+            <div style={{ flex: 1 }}>{erro}</div>
           </div>
         )}
 

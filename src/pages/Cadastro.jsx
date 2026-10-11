@@ -9,9 +9,6 @@ import {
   Lock,
   AlertCircle,
   ArrowLeft,
-  CheckCircle2,
-  Send,
-  ExternalLink,
   Sun,
   Moon,
 } from 'lucide-react';
@@ -23,7 +20,7 @@ const CURSOS_IFPE = [
 ];
 
 export function Cadastro({ onNavigateToLogin }) {
-  const { registro, reenviarConfirmacao } = useAuth();
+  const { registro } = useAuth();
   const { isDark, toggleTheme } = useTheme();
 
   const [nome, setNome] = useState('');
@@ -32,11 +29,6 @@ export function Cadastro({ onNavigateToLogin }) {
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
-
-  // Estado pós-cadastro (aguardando confirmação no e-mail)
-  const [registroConcluido, setRegistroConcluido] = useState(null);
-  const [reenviando, setReenviando] = useState(false);
-  const [mensagemReenvio, setMensagemReenvio] = useState('');
 
   const emailValido =
     email.trim().toLowerCase().endsWith('@discente.ifpe.edu.br') ||
@@ -62,115 +54,13 @@ export function Cadastro({ onNavigateToLogin }) {
     try {
       setCarregando(true);
       setErro('');
-      const resultado = await registro(nome, email, curso, senha);
-      setRegistroConcluido({
-        email: email.trim().toLowerCase(),
-        link_confirmacao: resultado.link_confirmacao,
-        mensagem: resultado.message,
-      });
+      await registro(nome, email, curso, senha);
+      // O registro já salva a sessão no AuthContext e entra direto na plataforma
     } catch (err) {
       setErro(err.message || 'Falha ao realizar cadastro.');
     } finally {
       setCarregando(false);
     }
-  }
-
-  async function handleReenviar() {
-    if (!registroConcluido?.email) return;
-    try {
-      setReenviando(true);
-      setMensagemReenvio('');
-      const res = await reenviarConfirmacao(registroConcluido.email);
-      setMensagemReenvio('E-mail de confirmação reenviado com sucesso! Verifique sua caixa de entrada.');
-      if (res.link_confirmacao) {
-        setRegistroConcluido((prev) => ({ ...prev, link_confirmacao: res.link_confirmacao }));
-      }
-    } catch (err) {
-      setMensagemReenvio(err.message || 'Erro ao reenviar e-mail.');
-    } finally {
-      setReenviando(false);
-    }
-  }
-
-  // Se o cadastro foi efetuado, exibe a tela de confirmação de e-mail obrigatória
-  if (registroConcluido) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.card} className="auth-card animate-fade-in">
-          <div style={styles.topBar}>
-            <button
-              type="button"
-              onClick={onNavigateToLogin}
-              style={styles.backBtn}
-            >
-              <ArrowLeft size={16} />
-              <span>Voltar ao Login</span>
-            </button>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              style={styles.themeToggleBtn}
-              title={isDark ? 'Ativar Modo Claro' : 'Ativar Modo Noturno'}
-            >
-              {isDark ? <Sun size={15} color="#f59e0b" /> : <Moon size={15} color="#6366f1" />}
-              <span style={{ fontSize: '0.74rem', fontWeight: '700' }}>{isDark ? 'Claro' : 'Escuro'}</span>
-            </button>
-          </div>
-
-          <div style={styles.header}>
-            <div style={styles.iconWrapperEmail}>
-              <Mail size={38} color="#16a34a" />
-            </div>
-            <h1 style={styles.title}>Confirme seu E-mail</h1>
-            <p style={styles.subtitle}>
-              Quase lá! Validação de acesso estudantil pendente
-            </p>
-          </div>
-
-          <div style={styles.emailInstructionsBox}>
-            <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-main)', lineHeight: '1.5' }}>
-              Enviamos um link de validação para:
-            </p>
-            <div style={styles.emailBadge}>
-              <Mail size={16} color="var(--color-primary)" />
-              <strong>{registroConcluido.email}</strong>
-            </div>
-            <p style={{ margin: '12px 0 0 0', fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-              Por segurança, você <strong>só poderá acessar a plataforma após clicar no link</strong> recebido em sua caixa de entrada institucional.
-            </p>
-          </div>
-
-
-
-          {mensagemReenvio && (
-            <div style={styles.infoAlert}>
-              <CheckCircle2 size={16} />
-              <span>{mensagemReenvio}</span>
-            </div>
-          )}
-
-          <div style={styles.actionButtonGroup}>
-            <button
-              type="button"
-              onClick={handleReenviar}
-              disabled={reenviando}
-              style={styles.resendBtn}
-            >
-              <Send size={15} />
-              <span>{reenviando ? 'Reenviando...' : 'Reenviar E-mail de Confirmação'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onNavigateToLogin}
-              style={styles.loginReturnBtn}
-            >
-              Ir para Tela de Login
-            </button>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -257,9 +147,6 @@ export function Cadastro({ onNavigateToLogin }) {
                 required
               />
             </div>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              Um link de confirmação será enviado para este e-mail para validar seu acesso.
-            </span>
           </div>
 
           {/* Curso */}
@@ -305,7 +192,7 @@ export function Cadastro({ onNavigateToLogin }) {
             disabled={carregando}
           >
             <UserPlus size={18} />
-            <span>{carregando ? 'Cadastrando e enviando confirmação...' : 'Cadastrar e Enviar Confirmação'}</span>
+            <span>{carregando ? 'Cadastrando e entrando...' : 'Finalizar Cadastro'}</span>
           </button>
         </form>
 
@@ -370,17 +257,6 @@ const styles = {
     textAlign: 'center',
     marginBottom: '24px',
   },
-  iconWrapperEmail: {
-    width: '64px',
-    height: '64px',
-    backgroundColor: '#ecfdf5',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto 14px auto',
-    boxShadow: '0 4px 12px rgba(22, 163, 74, 0.2)',
-  },
   logoBadge: {
     width: '44px',
     height: '44px',
@@ -415,64 +291,6 @@ const styles = {
   subtitle: {
     fontSize: '0.86rem',
     color: 'var(--text-muted)',
-  },
-  emailInstructionsBox: {
-    backgroundColor: 'var(--bg-card-subtle)',
-    borderRadius: 'var(--radius-md)',
-    padding: '16px',
-    border: '1px solid var(--border-color)',
-    marginBottom: '18px',
-    textAlign: 'center',
-  },
-  emailBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    backgroundColor: 'var(--bg-card)',
-    padding: '8px 14px',
-    borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--border-color)',
-    margin: '10px 0',
-    fontSize: '0.9rem',
-    color: 'var(--text-main)',
-  },
-
-  infoAlert: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    backgroundColor: '#ecfdf5',
-    color: '#065f46',
-    padding: '10px 14px',
-    borderRadius: 'var(--radius-md)',
-    fontSize: '0.84rem',
-    marginBottom: '16px',
-  },
-  actionButtonGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-  },
-  resendBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    backgroundColor: 'var(--bg-hover)',
-    border: '1px solid var(--border-color)',
-    color: 'var(--text-main)',
-    padding: '11px',
-    borderRadius: 'var(--radius-md)',
-    fontSize: '0.88rem',
-    fontWeight: '600',
-  },
-  loginReturnBtn: {
-    display: 'block',
-    textAlign: 'center',
-    color: 'var(--text-muted)',
-    fontSize: '0.85rem',
-    fontWeight: '600',
-    padding: '8px',
   },
   alertError: {
     display: 'flex',

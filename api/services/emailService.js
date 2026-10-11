@@ -28,7 +28,7 @@ function createTransporter() {
 }
 
 /**
- * Gera o template HTML profissional com a identidade visual do IFPE Olinda Hub
+ * Gera o template HTML profissional com a identidade visual do IFPE Olinda Conecta
  */
 function getVerificationHtml({ nome, confirmationUrl }) {
   return `
@@ -37,7 +37,7 @@ function getVerificationHtml({ nome, confirmationUrl }) {
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmação de Cadastro - IFPE Olinda Hub</title>
+    <title>Confirmação de Cadastro - IFPE Olinda Conecta</title>
     <style>
       body {
         margin: 0;
@@ -143,14 +143,14 @@ function getVerificationHtml({ nome, confirmationUrl }) {
   <body>
     <div class="container">
       <div class="header">
-        <div class="logo-badge">IFPE <span>Olinda</span> Hub</div>
+        <div class="logo-badge">IFPE <span>Olinda</span> Conecta</div>
         <h1>Confirmação de E-mail Institucional</h1>
         <p>Comunidade acadêmica discente do IFPE Campus Olinda</p>
       </div>
       <div class="content">
         <div class="greeting">Olá, ${nome}!</div>
         <p>
-          Obrigado por se registrar no <strong>IFPE Olinda Hub</strong>! Para garantir a segurança da nossa comunidade acadêmica e validar que você é estudante do campus, solicitamos a confirmação do seu e-mail institucional.
+          Obrigado por se registrar no <strong>IFPE Olinda Conecta</strong>! Para garantir a segurança da nossa comunidade acadêmica e validar que você é estudante do campus, solicitamos a confirmação do seu e-mail institucional.
         </p>
         <div class="info-box">
           🔒 <strong>Atenção:</strong> Por segurança, seu acesso à plataforma só será liberado após a validação através do botão abaixo.
@@ -165,11 +165,11 @@ function getVerificationHtml({ nome, confirmationUrl }) {
           ${confirmationUrl}
         </div>
         <p style="font-size: 13px; color: #9ca3af; margin-top: 24px;">
-          Este link expira em 24 horas. Se você não solicitou este cadastro no IFPE Olinda Hub, ignore esta mensagem com tranquilidade.
+          Este link expira em 24 horas. Se você não solicitou este cadastro no IFPE Olinda Conecta, ignore esta mensagem com tranquilidade.
         </p>
       </div>
       <div class="footer">
-        © ${new Date().getFullYear()} IFPE Olinda Hub - Instituto Federal de Pernambuco, Campus Olinda.<br>
+        © ${new Date().getFullYear()} IFPE Olinda Conecta - Instituto Federal de Pernambuco, Campus Olinda.<br>
         Plataforma oficial da comunidade discente.
       </div>
     </div>
@@ -183,15 +183,15 @@ function getVerificationHtml({ nome, confirmationUrl }) {
  */
 async function sendVerificationEmail({ to, nome, confirmationUrl }) {
   const transporter = createTransporter();
-  const from = process.env.SMTP_FROM || '"IFPE Olinda Hub" <noreply@ifpe.edu.br>';
+  const from = process.env.SMTP_FROM || '"IFPE Olinda Conecta" <noreply@ifpe.edu.br>';
 
   if (transporter) {
     try {
       const info = await transporter.sendMail({
         from,
         to,
-        subject: 'Confirme seu e-mail no IFPE Olinda Hub 🎓',
-        text: `Olá ${nome}!\n\nConfirme sua conta no IFPE Olinda Hub acessando o link:\n${confirmationUrl}\n\nEste link é válido por 24 horas.`,
+        subject: 'Confirme seu e-mail no IFPE Olinda Conecta 🎓',
+        text: `Olá ${nome}!\n\nConfirme sua conta no IFPE Olinda Conecta acessando o link:\n${confirmationUrl}\n\nEste link é válido por 24 horas.`,
         html: getVerificationHtml({ nome, confirmationUrl }),
       });
 
@@ -205,9 +205,9 @@ async function sendVerificationEmail({ to, nome, confirmationUrl }) {
 
   // Modo simulação / Desenvolvimento / Sem credenciais SMTP
   console.log(`\n======================================================`);
-  console.log(`📧 [SIMULAÇÃO DE E-MAIL INSTITUCIONAL - IFPE OLINDA HUB]`);
+  console.log(`📧 [SIMULAÇÃO DE E-MAIL INSTITUCIONAL - IFPE OLINDA Conecta]`);
   console.log(`Para: ${to} (${nome})`);
-  console.log(`Assunto: Confirme seu e-mail no IFPE Olinda Hub 🎓`);
+  console.log(`Assunto: Confirme seu e-mail no IFPE Olinda Conecta 🎓`);
   console.log(`🔗 Link de Confirmação:`);
   console.log(`${confirmationUrl}`);
   console.log(`======================================================\n`);

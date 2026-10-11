@@ -1,4 +1,4 @@
-# 🎓 IFPE Olinda Hub — Monorepo Full Stack para Vercel
+# 🎓 IFPE Olinda Conecta — Monorepo Full Stack para Vercel
 
 Plataforma de integração e fórum estudantil do **IFPE Campus Olinda** desenvolvida como **Monorepo Full Stack** (React + Express Serverless + Supabase), projetada especificamente para deploy simplificado em um único projeto na **Vercel**.
 
@@ -64,19 +64,19 @@ GABI/
 
 ## 🚀 Como Fazer o Deploy na Vercel (Passo a Passo)
 
-1. **Suba este repositório para o seu GitHub:**
+1. **Suba este repositório para o seu GitConecta:**
    ```bash
    git init
    git add .
-   git commit -m "feat: ifpe olinda hub monorepo full stack"
+   git commit -m "feat: ifpe olinda Conecta monorepo full stack"
    git branch -M main
-   git remote add origin https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git
+   git remote add origin https://gitConecta.com/SEU_USUARIO/SEU_REPOSITORIO.git
    git push -u origin main
    ```
 
 2. **Importe na Vercel:**
    - Acesse [vercel.com](https://vercel.com/) e clique em **Add New... > Project**.
-   - Conecte sua conta do GitHub e selecione o repositório.
+   - Conecte sua conta do GitConecta e selecione o repositório.
    - A Vercel detectará automaticamente o framework como **Vite**.
    - **Build Command:** `vite build`
    - **Output Directory:** `dist`
@@ -85,7 +85,7 @@ GABI/
    No momento de importar (ou em *Settings > Environment Variables*), adicione:
    - `SUPABASE_URL`: sua URL do projeto Supabase (ex: `https://xxxx.supabase.co`)
    - `SUPABASE_KEY`: sua chave `anon` ou `service_role` do Supabase
-   - `JWT_SECRET`: uma frase secreta (ex: `super_secret_ifpe_olinda_hub_jwt_key_2026`)
+   - `JWT_SECRET`: uma frase secreta (ex: `super_secret_ifpe_olinda_Conecta_jwt_key_2026`)
 
 4. **Clique em Deploy!**
    - Pronto! O frontend e o backend serão publicados juntos na mesma URL gerada pela Vercel.

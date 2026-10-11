@@ -1,24 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { Login } from './pages/Login';
 import { Cadastro } from './pages/Cadastro';
 import { Feed } from './pages/Feed';
-import { ConfirmarEmail } from './pages/ConfirmarEmail';
 
 function AppContent() {
   const { user, loading } = useAuth();
   const [telaAutenticacao, setTelaAutenticacao] = useState('login'); // 'login' | 'cadastro'
-  const [tokenConfirmacao, setTokenConfirmacao] = useState(null);
-
-  useEffect(() => {
-    // Detecta se o usuário clicou no link recebido por e-mail (?token_confirmacao=... ou ?token=...)
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token_confirmacao') || params.get('token');
-    if (token) {
-      setTokenConfirmacao(token);
-    }
-  }, []);
 
   if (loading) {
     return (
@@ -28,31 +17,12 @@ function AppContent() {
           <span style={styles.logoDotWhite}></span>
           <span style={styles.logoDotWhite}></span>
         </div>
-        <div style={styles.loadingText}>Carregando IFPE Olinda Hub...</div>
+        <div style={styles.loadingText}>Carregando IFPE Olinda Conecta...</div>
       </div>
     );
   }
 
-  // 1. Se veio com token de confirmação no link de e-mail
-  if (tokenConfirmacao && !user) {
-    return (
-      <ConfirmarEmail
-        token={tokenConfirmacao}
-        onConcluido={() => {
-          setTokenConfirmacao(null);
-        }}
-        onIrParaLogin={() => {
-          setTokenConfirmacao(null);
-          setTelaAutenticacao('login');
-          if (window.history?.replaceState) {
-            window.history.replaceState({}, document.title, window.location.pathname);
-          }
-        }}
-      />
-    );
-  }
-
-  // 2. Se não estiver logado
+  // Se não estiver logado
   if (!user) {
     if (telaAutenticacao === 'cadastro') {
       return <Cadastro onNavigateToLogin={() => setTelaAutenticacao('login')} />;
@@ -60,7 +30,7 @@ function AppContent() {
     return <Login onNavigateToCadastro={() => setTelaAutenticacao('cadastro')} />;
   }
 
-  // 3. Se logado com sucesso (após confirmação do e-mail)
+  // Se logado com sucesso
   return <Feed />;
 }
 

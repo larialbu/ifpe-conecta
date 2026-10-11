@@ -1,8 +1,8 @@
 {
-  "name": "ifpe-olinda-hub",
+  "name": "ifpe-olinda-Conecta",
   "version": "1.0.0",
   "private": true,
-  "description": "IFPE Olinda Hub - Monorepo Full Stack para Vercel (React + Express + Supabase)",
+  "description": "IFPE Olinda Conecta - Monorepo Full Stack para Vercel (React + Express + Supabase)",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "vite",

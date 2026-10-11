@@ -1,5 +1,5 @@
 -- ==============================================================================
--- 📌 IFPE Olinda Hub - Atualização dos Cursos no Banco de Dados (Supabase)
+-- 📌 IFPE Olinda Conecta - Atualização dos Cursos no Banco de Dados (Supabase)
 -- ==============================================================================
 -- Cursos oficiais permitidos:
 -- 1. Artes Visuais

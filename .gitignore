@@ -5,7 +5,7 @@ node_modules/
 dist/
 dist-ssr/
 
-# Variáveis de ambiente e segredos locais (NUNCA subir para o GitHub)
+# Variáveis de ambiente e segredos locais (NUNCA subir para o GitConecta)
 .env
 .env.local
 .env.*.local

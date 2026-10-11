@@ -110,7 +110,7 @@ export function PerfilModal({ isOpen, onClose }) {
             <div style={styles.avatarLarge}>{iniciais}</div>
             <div>
               <h2 style={styles.modalTitle}>Meu Perfil Estudantil</h2>
-              <span style={styles.modalSubtitle}>Gerencie suas informações no IFPE Olinda Hub</span>
+              <span style={styles.modalSubtitle}>Gerencie suas informações no IFPE Olinda Conecta</span>
             </div>
           </div>
           <button onClick={onClose} style={styles.closeBtn} title="Fechar modal">

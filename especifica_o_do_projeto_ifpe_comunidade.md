@@ -1,4 +1,4 @@
-# 📌 Prompt de Instrução para Criação do Sistema: IFPE Olinda Hub (Reddit/Comunidade Simplificada)
+# 📌 Prompt de Instrução para Criação do Sistema: IFPE Olinda Conecta (Reddit/Comunidade Simplificada)
 
 ---
 
@@ -9,7 +9,7 @@ Desenvolver uma aplicação web full stack simples e intuitiva (estilo fórum/Re
 
 ## 🛠️ Stack Tecnológica
 
-- **Frontend:** React (Vite),  CSS modular simples.
+- **Frontend:** React (Vite) + CSS modular simples.
 - **Backend:** Node.js com Express.
 - **Banco de Dados:** Supabase (PostgreSQL).
 - **Autenticação:** Gerenciada via Supabase Auth ou tokens JWT simples gerados no Express com credenciais no Supabase.
@@ -33,7 +33,7 @@ Seguir estritamente o padrão de cores institucionais do IFPE:
 
 ### 2. Layout da Interface (Baseado nas referências Reddit/LinkedIn)
 - **Barra de Navegação Superior (Header):**
-  - Logotipo/Nome: "IFPE Olinda Hub".
+  - Logotipo/Nome: "IFPE Olinda Conecta".
   - Barra de busca simples (opcional/placeholders).
   - Foto/Nome do usuário logado e botão de Sair (Logout).
 - **Barra Lateral Esquerda (Menu de Categorias / Espaços):**
@@ -95,7 +95,7 @@ O script SQL deve criar:
 O agente deve gerar o código organizado em uma estrutura simples e desacoplada:
 
 ```plaintext
-ifpe-hub/
+ifpe-Conecta/
 ├── backend/
 │   ├── src/
 │   │   ├── config/supabase.js

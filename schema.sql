@@ -1,5 +1,5 @@
 -- ==============================================================================
--- 📌 IFPE Olinda Hub - Script de Criação do Banco de Dados (Supabase / PostgreSQL)
+-- 📌 IFPE Olinda Conecta - Script de Criação do Banco de Dados (Supabase / PostgreSQL)
 -- ==============================================================================
 -- Instruções:
 -- 1. Acesse o painel do Supabase (https://supabase.com/dashboard).

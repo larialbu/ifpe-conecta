@@ -1,7 +1,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 function getAuthHeaders() {
-  const token = localStorage.getItem('ifpe_hub_token');
+  const token = localStorage.getItem('ifpe_Conecta_token');
   const headers = {
     'Content-Type': 'application/json',
   };
@@ -20,12 +20,7 @@ export const api = {
       body: JSON.stringify({ email, senha }),
     });
     const data = await res.json();
-    if (!res.ok) {
-      const error = new Error(data.error || 'Erro ao realizar login.');
-      error.nao_verificado = data.nao_verificado;
-      error.email = data.email;
-      throw error;
-    }
+    if (!res.ok) throw new Error(data.error || 'Erro ao realizar login.');
     return data;
   },
 
@@ -37,28 +32,6 @@ export const api = {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao criar conta.');
-    return data;
-  },
-
-  async confirmarEmail(token) {
-    const res = await fetch(`${API_BASE_URL}/auth/confirmar-email`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Erro ao validar e-mail.');
-    return data;
-  },
-
-  async reenviarConfirmacao(email) {
-    const res = await fetch(`${API_BASE_URL}/auth/reenviar-confirmacao`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Erro ao reenviar link de confirmação.');
     return data;
   },
 

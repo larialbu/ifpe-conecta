@@ -20,7 +20,7 @@ app.use(express.json());
 app.get(['/api/health', '/health'], (req, res) => {
   res.json({
     status: 'ok',
-    message: 'IFPE Olinda Hub API Vercel Serverless funcionando com sucesso!',
+    message: 'IFPE Olinda Conecta API Vercel Serverless funcionando com sucesso!',
     timestamp: new Date().toISOString()
   });
 });
@@ -35,7 +35,7 @@ app.use('/posts', postRoutes);
 
 // Tratamento de rotas de API não encontradas
 app.use((req, res) => {
-  res.status(404).json({ error: 'Endpoint não encontrado na API do IFPE Olinda Hub.' });
+  res.status(404).json({ error: 'Endpoint não encontrado na API do IFPE Olinda Conecta.' });
 });
 
 // Tratamento global de erros

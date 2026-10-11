@@ -9,8 +9,8 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     async function loadStoredUser() {
-      const storedToken = localStorage.getItem('ifpe_hub_token');
-      const storedUser = localStorage.getItem('ifpe_hub_user');
+      const storedToken = localStorage.getItem('ifpe_Conecta_token');
+      const storedUser = localStorage.getItem('ifpe_Conecta_user');
 
       if (storedToken && storedUser) {
         try {
@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
             .then((data) => {
               if (data?.usuario) {
                 setUser(data.usuario);
-                localStorage.setItem('ifpe_hub_user', JSON.stringify(data.usuario));
+                localStorage.setItem('ifpe_Conecta_user', JSON.stringify(data.usuario));
               }
             })
             .catch(() => {
@@ -39,8 +39,8 @@ export function AuthProvider({ children }) {
   async function login(email, senha) {
     const data = await api.login(email, senha);
     if (data.token && data.usuario) {
-      localStorage.setItem('ifpe_hub_token', data.token);
-      localStorage.setItem('ifpe_hub_user', JSON.stringify(data.usuario));
+      localStorage.setItem('ifpe_Conecta_token', data.token);
+      localStorage.setItem('ifpe_Conecta_user', JSON.stringify(data.usuario));
       setUser(data.usuario);
     }
     return data;
@@ -48,35 +48,20 @@ export function AuthProvider({ children }) {
 
   async function registro(nome, email, curso, senha) {
     const data = await api.registro(nome, email, curso, senha);
-    // Nota: O registro agora exige confirmação por e-mail antes do login
     if (data.token && data.usuario) {
-      localStorage.setItem('ifpe_hub_token', data.token);
-      localStorage.setItem('ifpe_hub_user', JSON.stringify(data.usuario));
+      localStorage.setItem('ifpe_Conecta_token', data.token);
+      localStorage.setItem('ifpe_Conecta_user', JSON.stringify(data.usuario));
       setUser(data.usuario);
     }
     return data;
-  }
-
-  async function confirmarEmail(token) {
-    const data = await api.confirmarEmail(token);
-    if (data.token && data.usuario) {
-      localStorage.setItem('ifpe_hub_token', data.token);
-      localStorage.setItem('ifpe_hub_user', JSON.stringify(data.usuario));
-      setUser(data.usuario);
-    }
-    return data;
-  }
-
-  async function reenviarConfirmacao(email) {
-    return await api.reenviarConfirmacao(email);
   }
 
   async function atualizarPerfil(dados) {
     const data = await api.atualizarPerfil(dados);
     if (data.usuario) {
-      localStorage.setItem('ifpe_hub_user', JSON.stringify(data.usuario));
+      localStorage.setItem('ifpe_Conecta_user', JSON.stringify(data.usuario));
       if (data.token) {
-        localStorage.setItem('ifpe_hub_token', data.token);
+        localStorage.setItem('ifpe_Conecta_token', data.token);
       }
       setUser(data.usuario);
     }
@@ -84,8 +69,8 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
-    localStorage.removeItem('ifpe_hub_token');
-    localStorage.removeItem('ifpe_hub_user');
+    localStorage.removeItem('ifpe_Conecta_token');
+    localStorage.removeItem('ifpe_Conecta_user');
     setUser(null);
   }
 
@@ -96,8 +81,6 @@ export function AuthProvider({ children }) {
         loading,
         login,
         registro,
-        confirmarEmail,
-        reenviarConfirmacao,
         atualizarPerfil,
         logout,
       }}
