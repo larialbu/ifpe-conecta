@@ -23,11 +23,8 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
     CONSTRAINT email_estudantil_check CHECK (email ILIKE '%@discente.ifpe.edu.br' OR email ILIKE '%@ifpe.edu.br')
 );
 
--- Garantir colunas bio e de verificação de e-mail caso a tabela já tenha sido criada anteriormente
+-- Garantir coluna bio caso a tabela já tenha sido criada anteriormente
 ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS bio TEXT;
-ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS email_verificado BOOLEAN DEFAULT FALSE;
-ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS token_verificacao TEXT;
-ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS token_verificacao_expira TIMESTAMPTZ;
 
 -- 3. Tabela de Publicações (Posts)
 CREATE TABLE IF NOT EXISTS public.posts (
@@ -98,31 +95,28 @@ CREATE POLICY "Permitir operações em curtidas" ON public.curtidas FOR ALL USIN
 -- Usuários iniciais com senha padrão criptografada bcrypt (senha: "123456")
 -- ==============================================================================
 
-INSERT INTO public.usuarios (id, nome, email, curso, senha, email_verificado)
+INSERT INTO public.usuarios (id, nome, email, curso, senha)
 VALUES 
     (
         '11111111-1111-1111-1111-111111111111', 
         'Mariana Silva', 
         'mariana.silva@discente.ifpe.edu.br', 
         'Computação Gráfica', 
-        '$2b$10$uXb1Ti5giaAV6KO5w4QVzOS0QxiM/XAu1dL31RtmqWUHSHv8xPDWm',
-        true
+        '$2b$10$uXb1Ti5giaAV6KO5w4QVzOS0QxiM/XAu1dL31RtmqWUHSHv8xPDWm'
     ),
     (
         '22222222-2222-2222-2222-222222222222', 
         'Lucas Albuquerque', 
         'lucas.albuquerque@discente.ifpe.edu.br', 
         'Técnico em Computação Gráfica', 
-        '$2b$10$uXb1Ti5giaAV6KO5w4QVzOS0QxiM/XAu1dL31RtmqWUHSHv8xPDWm',
-        true
+        '$2b$10$uXb1Ti5giaAV6KO5w4QVzOS0QxiM/XAu1dL31RtmqWUHSHv8xPDWm'
     ),
     (
         '33333333-3333-3333-3333-333333333333', 
         'Camila Duarte', 
         'camila.duarte@discente.ifpe.edu.br', 
         'Artes Visuais', 
-        '$2b$10$uXb1Ti5giaAV6KO5w4QVzOS0QxiM/XAu1dL31RtmqWUHSHv8xPDWm',
-        true
+        '$2b$10$uXb1Ti5giaAV6KO5w4QVzOS0QxiM/XAu1dL31RtmqWUHSHv8xPDWm'
     )
 ON CONFLICT (email) DO UPDATE SET curso = EXCLUDED.curso;
 

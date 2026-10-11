@@ -54,7 +54,6 @@ async function register(req, res) {
           email: emailTratado,
           curso: curso.trim(),
           senha: senhaHash,
-          email_verificado: true,
         },
       ])
       .select('id, nome, email, curso, created_at')
