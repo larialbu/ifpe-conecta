@@ -114,7 +114,7 @@ export function Cadastro({ onNavigateToLogin }) {
               <User size={18} color="var(--text-muted)" style={styles.inputIcon} />
               <input
                 type="text"
-                placeholder="Ex: Larissa Silva Albuquerque"
+                placeholder="Ex: João da Silva"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 style={styles.input}
@@ -137,7 +137,7 @@ export function Cadastro({ onNavigateToLogin }) {
               <Mail size={18} color="var(--text-muted)" style={styles.inputIcon} />
               <input
                 type="email"
-                placeholder="seunome@discente.ifpe.edu.br"
+                placeholder="joao.silva@discente.ifpe.edu.br"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 style={{
