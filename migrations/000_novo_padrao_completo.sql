@@ -25,17 +25,20 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
     curso TEXT NOT NULL,
     bio TEXT,
     tipo TEXT NOT NULL DEFAULT 'usuario' CHECK (tipo IN ('usuario', 'admin')),
+    email_verificado BOOLEAN NOT NULL DEFAULT FALSE,
+    token_verificacao TEXT,
+    token_verificacao_expira TIMESTAMPTZ,
     senha TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
     CONSTRAINT email_estudantil_check CHECK (email ILIKE '%@discente.ifpe.edu.br' OR email ILIKE '%@ifpe.edu.br')
 );
 
--- Garantir colunas bio e tipo e remover campos obsoletos de validação
+-- Garantir colunas bio, tipo e ativação de e-mail
 ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS bio TEXT;
 ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT 'usuario';
-ALTER TABLE public.usuarios DROP COLUMN IF EXISTS email_verificado;
-ALTER TABLE public.usuarios DROP COLUMN IF EXISTS token_verificacao;
-ALTER TABLE public.usuarios DROP COLUMN IF EXISTS token_verificacao_expira;
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS email_verificado BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS token_verificacao TEXT;
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS token_verificacao_expira TIMESTAMPTZ;
 
 -- 4. Migração e Normalização de Cursos para o Novo Padrão Oficial
 UPDATE public.usuarios 

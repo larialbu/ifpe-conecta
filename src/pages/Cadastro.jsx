@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { api } from '../services/api';
 import {
   UserPlus,
   User,
@@ -11,6 +12,8 @@ import {
   ArrowLeft,
   Sun,
   Moon,
+  CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
 
 const CURSOS_IFPE = [
@@ -30,6 +33,11 @@ export function Cadastro({ onNavigateToLogin }) {
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
+
+  // Estado de confirmação por e-mail obrigatória
+  const [registroConcluido, setRegistroConcluido] = useState(null);
+  const [reenviando, setReenviando] = useState(false);
+  const [mensagemReenvio, setMensagemReenvio] = useState('');
 
   const emailValido =
     email.trim().toLowerCase().endsWith('@discente.ifpe.edu.br') ||
@@ -55,13 +63,108 @@ export function Cadastro({ onNavigateToLogin }) {
     try {
       setCarregando(true);
       setErro('');
-      await registro(nome, email, curso, senha);
-      // O registro já salva a sessão no AuthContext e entra direto na plataforma
+      const res = await registro(nome, email, curso, senha);
+      if (res.aguardandoConfirmacao) {
+        setRegistroConcluido({ email: email.trim().toLowerCase(), nome: nome.trim() });
+      }
     } catch (err) {
       setErro(err.message || 'Falha ao realizar cadastro.');
     } finally {
       setCarregando(false);
     }
+  }
+
+  async function handleReenviar() {
+    if (!registroConcluido?.email) return;
+    try {
+      setReenviando(true);
+      setMensagemReenvio('');
+      const res = await api.reenviarConfirmacao(registroConcluido.email);
+      setMensagemReenvio(res.message || 'E-mail de ativação reenviado com sucesso! Verifique sua caixa de entrada.');
+    } catch (err) {
+      setMensagemReenvio(err.message || 'Erro ao reenviar e-mail.');
+    } finally {
+      setReenviando(false);
+    }
+  }
+
+  // Se o cadastro foi efetuado, exibe a tela de confirmação de e-mail obrigatória
+  if (registroConcluido) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.card} className="auth-card animate-fade-in">
+          <div style={styles.topBar}>
+            <button
+              type="button"
+              onClick={onNavigateToLogin}
+              style={styles.backBtn}
+            >
+              <ArrowLeft size={16} />
+              <span>Voltar ao Login</span>
+            </button>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              style={styles.themeToggleBtn}
+              title={isDark ? 'Ativar Modo Claro' : 'Ativar Modo Noturno'}
+            >
+              {isDark ? <Sun size={15} color="#f59e0b" /> : <Moon size={15} color="#6366f1" />}
+              <span style={{ fontSize: '0.74rem', fontWeight: '700' }}>{isDark ? 'Claro' : 'Escuro'}</span>
+            </button>
+          </div>
+
+          <div style={styles.header}>
+            <div style={styles.iconWrapperEmail}>
+              <Mail size={38} color="#16a34a" />
+            </div>
+            <h1 style={styles.title}>Quase lá! Ative sua conta</h1>
+            <p style={styles.subtitle}>Confirmação necessária para liberar o acesso</p>
+          </div>
+
+          <div style={styles.confirmationContent}>
+            <p style={styles.confirmationText}>
+              Enviamos um e-mail com o link de ativação oficial para:
+              <br />
+              <strong style={{ color: 'var(--color-primary)', wordBreak: 'break-all' }}>
+                {registroConcluido.email}
+              </strong>
+            </p>
+
+            <div style={styles.infoAlert}>
+              <span>
+                🔒 <strong>Atenção:</strong> Sua conta só será liberada na plataforma após você abrir o e-mail recebido e clicar no botão <strong>"Ativar Minha Conta"</strong>.
+              </span>
+            </div>
+
+            {mensagemReenvio && (
+              <div style={styles.resendMessage}>
+                <span>{mensagemReenvio}</span>
+              </div>
+            )}
+
+            <div style={styles.confirmationActions}>
+              <button
+                type="button"
+                onClick={handleReenviar}
+                disabled={reenviando}
+                style={styles.resendBtn}
+              >
+                <RefreshCw size={15} className={reenviando ? 'animate-spin' : ''} style={{ marginRight: '6px' }} />
+                {reenviando ? 'Reenviando...' : 'Reenviar E-mail de Ativação'}
+              </button>
+
+              <button
+                type="button"
+                onClick={onNavigateToLogin}
+                style={styles.goToLoginBtn}
+              >
+                Já confirmei, ir para Login
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -382,5 +485,75 @@ const styles = {
   linkBtn: {
     color: 'var(--color-primary)',
     fontWeight: '700',
+  },
+  iconWrapperEmail: {
+    width: '64px',
+    height: '64px',
+    borderRadius: '16px',
+    backgroundColor: 'rgba(22, 163, 74, 0.12)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 16px auto',
+  },
+  confirmationContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    textAlign: 'center',
+  },
+  confirmationText: {
+    fontSize: '0.92rem',
+    lineHeight: '1.6',
+    color: 'var(--text-main)',
+    margin: 0,
+  },
+  infoAlert: {
+    backgroundColor: 'rgba(22, 163, 74, 0.08)',
+    border: '1px solid rgba(22, 163, 74, 0.25)',
+    borderRadius: '8px',
+    padding: '12px 14px',
+    fontSize: '0.82rem',
+    lineHeight: '1.5',
+    color: '#166534',
+    textAlign: 'left',
+  },
+  resendMessage: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    border: '1px solid rgba(59, 130, 246, 0.25)',
+    borderRadius: '8px',
+    padding: '10px 12px',
+    fontSize: '0.82rem',
+    color: '#1e40af',
+  },
+  confirmationActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    marginTop: '8px',
+  },
+  resendBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '10px 16px',
+    backgroundColor: 'var(--bg-hover)',
+    border: '1px solid var(--border-color)',
+    borderRadius: '8px',
+    fontSize: '0.86rem',
+    fontWeight: '600',
+    color: 'var(--text-main)',
+    cursor: 'pointer',
+  },
+  goToLoginBtn: {
+    padding: '11px 16px',
+    backgroundColor: 'var(--color-primary)',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '0.9rem',
+    fontWeight: '700',
+    cursor: 'pointer',
+    boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
   },
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { api } from '../services/api';
 import { LogIn, Lock, Mail, AlertCircle, ArrowRight, Sun, Moon } from 'lucide-react';
 
 export function Login({ onNavigateToCadastro }) {
@@ -10,6 +11,8 @@ export function Login({ onNavigateToCadastro }) {
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
+  const [msgReenvio, setMsgReenvio] = useState('');
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -21,11 +24,26 @@ export function Login({ onNavigateToCadastro }) {
     try {
       setCarregando(true);
       setErro('');
+      setMsgReenvio('');
       await login(email, senha);
     } catch (err) {
       setErro(err.message || 'Falha ao autenticar.');
     } finally {
       setCarregando(false);
+    }
+  }
+
+  async function handleReenviarAtivacao() {
+    if (!email) return;
+    try {
+      setReenviando(true);
+      setMsgReenvio('');
+      const res = await api.reenviarConfirmacao(email);
+      setMsgReenvio(res.message || 'Novo link enviado com sucesso! Verifique sua caixa de entrada.');
+    } catch (err) {
+      setMsgReenvio(err.message || 'Erro ao reenviar.');
+    } finally {
+      setReenviando(false);
     }
   }
 
@@ -61,8 +79,27 @@ export function Login({ onNavigateToCadastro }) {
 
         {erro && (
           <div style={styles.alertError}>
-            <AlertCircle size={18} style={{ flexShrink: 0 }} />
-            <div style={{ flex: 1 }}>{erro}</div>
+            <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div style={{ flex: 1 }}>
+              <div>{erro}</div>
+              {erro.includes('ativada') && email && (
+                <div style={{ marginTop: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={handleReenviarAtivacao}
+                    disabled={reenviando}
+                    style={styles.resendLinkBtn}
+                  >
+                    {reenviando ? 'Reenviando...' : '📩 Clique aqui para reenviar o e-mail de ativação'}
+                  </button>
+                </div>
+              )}
+              {msgReenvio && (
+                <div style={styles.msgReenvioSuccess}>
+                  {msgReenvio}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -222,6 +259,23 @@ const styles = {
     fontSize: '0.78rem',
     fontWeight: '700',
     cursor: 'pointer',
+  },
+  resendLinkBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#16a34a',
+    fontWeight: '700',
+    fontSize: '0.82rem',
+    cursor: 'pointer',
+    padding: 0,
+    textDecoration: 'underline',
+    display: 'inline-block',
+  },
+  msgReenvioSuccess: {
+    marginTop: '6px',
+    fontSize: '0.8rem',
+    color: '#15803d',
+    fontWeight: '600',
   },
   alertSuccess: {
     display: 'flex',

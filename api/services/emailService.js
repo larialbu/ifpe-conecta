@@ -292,11 +292,38 @@ function getBroadcastHtml({ titulo, mensagem, destinatarioNome }) {
 }
 
 /**
+ * Determina o remetente formatado com o nome de exibição "IFPE Chega Junto"
+ * Suporta objeto { name, address } para garantir que clientes de e-mail (Gmail, Outlook)
+ * exibam "IFPE Chega Junto" em vez do endereço puro.
+ */
+function getFromSender() {
+  const user = (process.env.SMTP_USER || 'noreply@ifpe.edu.br').trim();
+  let name = 'IFPE Chega Junto';
+  let address = user;
+
+  const raw = (process.env.SMTP_FROM || '').trim();
+  if (raw) {
+    const match = raw.match(/^(?:"?([^"<]+)"?\s*)?<([^>]+)>$/);
+    if (match) {
+      if (match[1]) name = match[1].replace(/["']/g, '').trim();
+      if (match[2]) address = match[2].trim();
+    } else if (raw.includes('@')) {
+      address = raw.replace(/["']/g, '').trim();
+    }
+  }
+
+  return {
+    name: name || 'IFPE Chega Junto',
+    address: address || user,
+  };
+}
+
+/**
  * Envia o e-mail de confirmação ou loga em desenvolvimento
  */
 async function sendVerificationEmail({ to, nome, confirmationUrl }) {
   const transporter = createTransporter();
-  const from = process.env.SMTP_FROM || `"IFPE Chega Junto" <${process.env.SMTP_USER || 'noreply@ifpe.edu.br'}>`;
+  const from = getFromSender();
 
   if (transporter) {
     try {
@@ -319,6 +346,7 @@ async function sendVerificationEmail({ to, nome, confirmationUrl }) {
   console.log(`\n======================================================`);
   console.log(`📧 [SIMULAÇÃO DE E-MAIL INSTITUCIONAL - IFPE CHEGA JUNTO]`);
   console.log(`Para: ${to} (${nome})`);
+  console.log(`De: "${from.name}" <${from.address}>`);
   console.log(`Assunto: Confirme seu e-mail no IFPE Chega Junto 🎓`);
   console.log(`🔗 Link de Confirmação:`);
   console.log(`${confirmationUrl}`);
@@ -332,7 +360,7 @@ async function sendVerificationEmail({ to, nome, confirmationUrl }) {
  */
 async function sendBroadcastEmail({ to, subject, message, destinatarioNome }) {
   const transporter = createTransporter();
-  const from = process.env.SMTP_FROM || `"IFPE Chega Junto" <${process.env.SMTP_USER || 'noreply@ifpe.edu.br'}>`;
+  const from = getFromSender();
 
   if (transporter) {
     try {
@@ -348,7 +376,7 @@ async function sendBroadcastEmail({ to, subject, message, destinatarioNome }) {
         }),
       });
 
-      console.log(`[BROADCAST ENVIADO] E-mail enviado com sucesso para ${to}. ID: ${info.messageId}`);
+      console.log(`[BROADCAST ENVIADO] E-mail enviado com sucesso para ${to}. Remetente: "${from.name}" <${from.address}> ID: ${info.messageId}`);
       return { success: true, simulated: false, messageId: info.messageId, email: to };
     } catch (err) {
       console.error(`[ERRO BROADCAST] Falha ao enviar e-mail para ${to}:`, err.message);
@@ -360,6 +388,7 @@ async function sendBroadcastEmail({ to, subject, message, destinatarioNome }) {
   console.log(`\n======================================================`);
   console.log(`📢 [SIMULAÇÃO DISPARO DE E-MAIL - IFPE CHEGA JUNTO]`);
   console.log(`Para: ${to} (${destinatarioNome})`);
+  console.log(`De: "${from.name}" <${from.address}>`);
   console.log(`Assunto: ${subject}`);
   console.log(`Mensagem:\n${message}`);
   console.log(`======================================================\n`);

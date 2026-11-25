@@ -9,51 +9,71 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     async function loadStoredUser() {
-      const storedToken = localStorage.getItem('ifpe_Conecta_token');
+      const storedToken = localStorage.getItem('ifpe_Conecta_token') || localStorage.getItem('ifpe_admin_token');
       const storedUser = localStorage.getItem('ifpe_Conecta_user');
 
-      if (storedToken && storedUser) {
-        try {
-          setUser(JSON.parse(storedUser));
-          // Opcional: validação assíncrona com API
-          api.getMe()
-            .then((data) => {
-              if (data?.usuario) {
-                setUser(data.usuario);
-                localStorage.setItem('ifpe_Conecta_user', JSON.stringify(data.usuario));
-              }
-            })
-            .catch(() => {
-              // Se token expirou, desloga
-              // logout();
-            });
-        } catch (e) {
-          console.error('Falha ao restaurar sessão', e);
+      if (storedToken) {
+        if (storedUser) {
+          try {
+            setUser(JSON.parse(storedUser));
+          } catch (e) {
+            console.error('Falha ao restaurar sessão', e);
+          }
         }
+        // Validação e sincronização automática com a API
+        api.getMe()
+          .then((data) => {
+            if (data?.usuario) {
+              setUser(data.usuario);
+              localStorage.setItem('ifpe_Conecta_user', JSON.stringify(data.usuario));
+            }
+          })
+          .catch(() => {
+            // Silencioso se offline/erro de rede temporário
+          });
       }
       setLoading(false);
     }
     loadStoredUser();
   }, []);
 
+  function setSessionUser(userData, token) {
+    if (token) {
+      localStorage.setItem('ifpe_Conecta_token', token);
+      localStorage.setItem('ifpe_admin_token', token);
+    }
+    if (userData) {
+      localStorage.setItem('ifpe_Conecta_user', JSON.stringify(userData));
+      setUser(userData);
+    }
+  }
+
   async function login(email, senha) {
     const data = await api.login(email, senha);
     if (data.token && data.usuario) {
-      localStorage.setItem('ifpe_Conecta_token', data.token);
-      localStorage.setItem('ifpe_Conecta_user', JSON.stringify(data.usuario));
-      setUser(data.usuario);
+      setSessionUser(data.usuario, data.token);
     }
     return data;
   }
 
   async function registro(nome, email, curso, senha) {
     const data = await api.registro(nome, email, curso, senha);
-    if (data.token && data.usuario) {
-      localStorage.setItem('ifpe_Conecta_token', data.token);
-      localStorage.setItem('ifpe_Conecta_user', JSON.stringify(data.usuario));
-      setUser(data.usuario);
+    if (data.token && data.usuario && !data.aguardandoConfirmacao) {
+      setSessionUser(data.usuario, data.token);
     }
     return data;
+  }
+
+  async function confirmarEmail(token) {
+    const data = await api.confirmarEmail(token);
+    if (data.token && data.usuario) {
+      setSessionUser(data.usuario, data.token);
+    }
+    return data;
+  }
+
+  async function reenviarConfirmacao(email) {
+    return await api.reenviarConfirmacao(email);
   }
 
   async function atualizarPerfil(dados) {
@@ -71,6 +91,7 @@ export function AuthProvider({ children }) {
   function logout() {
     localStorage.removeItem('ifpe_Conecta_token');
     localStorage.removeItem('ifpe_Conecta_user');
+    localStorage.removeItem('ifpe_admin_token');
     setUser(null);
   }
 
@@ -81,7 +102,10 @@ export function AuthProvider({ children }) {
         loading,
         login,
         registro,
+        confirmarEmail,
+        reenviarConfirmacao,
         atualizarPerfil,
+        setSessionUser,
         logout,
       }}
     >

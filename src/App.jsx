@@ -6,15 +6,18 @@ import { Cadastro } from './pages/Cadastro';
 import { Feed } from './pages/Feed';
 import { AdminLogin } from './pages/AdminLogin';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { ConfirmarEmail } from './pages/ConfirmarEmail';
 
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { user, loading, setSessionUser } = useAuth();
   const [telaAutenticacao, setTelaAutenticacao] = useState('login'); // 'login' | 'cadastro'
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
+  const [adminToken, setAdminToken] = useState(() => localStorage.getItem('ifpe_admin_token'));
 
   useEffect(() => {
     const handlePopState = () => {
       setCurrentPath(window.location.pathname);
+      setAdminToken(localStorage.getItem('ifpe_admin_token'));
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -23,13 +26,43 @@ function AppContent() {
   const navigate = (to) => {
     window.history.pushState({}, '', to);
     setCurrentPath(to);
+    setAdminToken(localStorage.getItem('ifpe_admin_token'));
   };
+
+  const handleAdminSuccess = (token) => {
+    const tk = token || localStorage.getItem('ifpe_admin_token');
+    setAdminToken(tk);
+    navigate('/admin');
+  };
+
+  // 1. Rota de Confirmação de E-mail (quando o estudante clica no link enviado)
+  const urlParams = new URLSearchParams(window.location.search);
+  const tokenConfirmacao = urlParams.get('token_confirmacao');
+
+  if (tokenConfirmacao || currentPath === '/confirmar-email') {
+    return (
+      <ConfirmarEmail
+        token={tokenConfirmacao}
+        onConcluido={(dadosSessao) => {
+          if (dadosSessao?.usuario && dadosSessao?.token && setSessionUser) {
+            setSessionUser(dadosSessao.usuario, dadosSessao.token);
+          }
+          window.history.replaceState({}, '', '/');
+          setCurrentPath('/');
+        }}
+        onIrParaLogin={() => {
+          window.history.replaceState({}, '', '/');
+          setCurrentPath('/');
+        }}
+      />
+    );
+  }
 
   // Rota: /admin/login
   if (currentPath === '/admin/login') {
     return (
       <AdminLogin
-        onNavigateToAdmin={() => navigate('/admin')}
+        onNavigateToAdmin={handleAdminSuccess}
         onNavigateToFeed={() => navigate('/')}
       />
     );
@@ -37,11 +70,11 @@ function AppContent() {
 
   // Rota: /admin (Exclusivo para admin - usuário comum tem acesso apenas ao sistema principal)
   if (currentPath === '/admin') {
-    const adminToken = localStorage.getItem('ifpe_admin_token');
+    const currentAdminToken = adminToken || localStorage.getItem('ifpe_admin_token');
     const isLoggedAdmin = user?.tipo === 'admin' || user?.role === 'admin';
 
-    // Se o usuário está logado na plataforma principal mas é usuário comum (não-admin)
-    if (user && !isLoggedAdmin && !adminToken) {
+    // Se o usuário está logado na plataforma principal mas é usuário comum (não-admin) e não tem token admin
+    if (user && !isLoggedAdmin && !currentAdminToken) {
       return (
         <div style={styles.accessDeniedScreen}>
           <div style={styles.accessDeniedCard}>
@@ -58,10 +91,10 @@ function AppContent() {
       );
     }
 
-    if (!adminToken && !isLoggedAdmin) {
+    if (!currentAdminToken && !isLoggedAdmin) {
       return (
         <AdminLogin
-          onNavigateToAdmin={() => navigate('/admin')}
+          onNavigateToAdmin={handleAdminSuccess}
           onNavigateToFeed={() => navigate('/')}
         />
       );
@@ -70,7 +103,10 @@ function AppContent() {
     return (
       <AdminDashboard
         onNavigateToFeed={() => navigate('/')}
-        onNavigateToLogin={() => navigate('/admin/login')}
+        onNavigateToLogin={() => {
+          setAdminToken(null);
+          navigate('/admin/login');
+        }}
       />
     );
   }

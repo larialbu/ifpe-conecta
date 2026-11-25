@@ -26,18 +26,21 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
     curso TEXT NOT NULL,
     bio TEXT,
     tipo TEXT NOT NULL DEFAULT 'usuario' CHECK (tipo IN ('usuario', 'admin')),
+    email_verificado BOOLEAN NOT NULL DEFAULT FALSE,
+    token_verificacao TEXT,
+    token_verificacao_expira TIMESTAMPTZ,
     senha TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
     CONSTRAINT email_estudantil_check CHECK (email ILIKE '%@discente.ifpe.edu.br' OR email ILIKE '%@ifpe.edu.br'),
     CONSTRAINT check_cursos_ifpe_olinda CHECK (curso IN ('Artes Visuais', 'Computação Gráfica Integrado', 'Computação Gráfica Subsequente', 'Produção em Multimídia'))
 );
 
--- Garantir colunas bio e tipo caso a tabela já tenha sido criada anteriormente
+-- Garantir colunas bio, tipo e email_verificado caso a tabela já tenha sido criada anteriormente
 ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS bio TEXT;
 ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT 'usuario';
-ALTER TABLE public.usuarios DROP COLUMN IF EXISTS email_verificado;
-ALTER TABLE public.usuarios DROP COLUMN IF EXISTS token_verificacao;
-ALTER TABLE public.usuarios DROP COLUMN IF EXISTS token_verificacao_expira;
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS email_verificado BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS token_verificacao TEXT;
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS token_verificacao_expira TIMESTAMPTZ;
 
 -- 3. Tabela de Publicações (Posts)
 CREATE TABLE IF NOT EXISTS public.posts (

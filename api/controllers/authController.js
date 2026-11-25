@@ -1,9 +1,20 @@
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { supabase } = require('../config/supabase');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
+const { sendVerificationEmail } = require('../services/emailService');
 
-// 1. Cadastro Direto no Banco (sem confirmação de e-mail)
+function getAppOrigin(req) {
+  return (
+    req.headers.origin ||
+    (req.headers.referer ? req.headers.referer.replace(/\/$/, '') : null) ||
+    process.env.APP_URL ||
+    'http://localhost:3000'
+  );
+}
+
+// 1. Cadastro de Estudante com Envio Obrigatório de E-mail de Ativação
 async function register(req, res) {
   try {
     const { nome, email, curso, senha } = req.body;
@@ -27,10 +38,16 @@ async function register(req, res) {
     const salt = await bcrypt.genSalt(10);
     const senhaHash = await bcrypt.hash(senha, salt);
 
+    // Gerar token de verificação criptográfico com validade de 24 horas
+    const tokenVerificacao = crypto.randomBytes(32).toString('hex');
+    const tokenExpira = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const origin = getAppOrigin(req);
+    const confirmationUrl = `${origin}/?token_confirmacao=${tokenVerificacao}`;
+
     // 1.1 Verificar no banco se a conta já existe
     const { data: usuarioExistente, error: errBusca } = await supabase
       .from('usuarios')
-      .select('id, email')
+      .select('id, email, email_verificado')
       .eq('email', emailTratado)
       .maybeSingle();
 
@@ -40,12 +57,43 @@ async function register(req, res) {
     }
 
     if (usuarioExistente) {
-      return res.status(409).json({
-        error: 'Já existe uma conta cadastrada com este e-mail. Por favor, acesse a tela de login.',
+      if (usuarioExistente.email_verificado) {
+        return res.status(409).json({
+          error: 'Já existe uma conta ativa cadastrada com este e-mail. Por favor, acesse a tela de login.',
+        });
+      }
+
+      // Se a conta já existe mas o e-mail ainda não foi confirmado, renova o token e reenvia o e-mail
+      const { error: updateError } = await supabase
+        .from('usuarios')
+        .update({
+          nome: nome.trim(),
+          curso: curso.trim(),
+          senha: senhaHash,
+          token_verificacao: tokenVerificacao,
+          token_verificacao_expira: tokenExpira,
+        })
+        .eq('id', usuarioExistente.id);
+
+      if (updateError) {
+        console.error('Erro ao atualizar cadastro pendente:', updateError);
+        return res.status(500).json({ error: 'Erro ao atualizar dados no banco de dados.' });
+      }
+
+      await sendVerificationEmail({
+        to: emailTratado,
+        nome: nome.trim(),
+        confirmationUrl,
+      });
+
+      return res.status(200).json({
+        message: 'Sua conta já havia sido pré-cadastrada! Reenviamos o link de ativação para o seu e-mail institucional.',
+        email: emailTratado,
+        aguardandoConfirmacao: true,
       });
     }
 
-    // 1.2 Inserir novo usuário diretamente no Supabase como ativo (tipo: 'usuario')
+    // 1.2 Inserir novo usuário no Supabase com email_verificado = FALSE
     const { data: novoUsuario, error: insertError } = await supabase
       .from('usuarios')
       .insert([
@@ -55,9 +103,12 @@ async function register(req, res) {
           curso: curso.trim(),
           senha: senhaHash,
           tipo: 'usuario',
+          email_verificado: false,
+          token_verificacao: tokenVerificacao,
+          token_verificacao_expira: tokenExpira,
         },
       ])
-      .select('id, nome, email, curso, tipo, created_at')
+      .select('id, nome, email, curso, tipo, email_verificado, created_at')
       .single();
 
     if (insertError) {
@@ -65,24 +116,18 @@ async function register(req, res) {
       return res.status(500).json({ error: 'Erro ao cadastrar usuário no banco de dados.' });
     }
 
-    // 1.3 Gerar token de autenticação imediato para entrar direto
-    const token = jwt.sign(
-      {
-        id: novoUsuario.id,
-        nome: novoUsuario.nome,
-        email: novoUsuario.email,
-        curso: novoUsuario.curso,
-        tipo: 'usuario',
-        role: 'user',
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // 1.3 Despachar o e-mail oficial de ativação com o template do IFPE Chega Junto
+    await sendVerificationEmail({
+      to: emailTratado,
+      nome: nome.trim(),
+      confirmationUrl,
+    });
 
     return res.status(201).json({
-      message: 'Conta criada com sucesso! Bem-vindo(a) ao IFPE Chega Junto.',
+      message: 'Cadastro realizado com sucesso! Enviamos um link de ativação para o seu e-mail institucional.',
+      email: emailTratado,
+      aguardandoConfirmacao: true,
       usuario: novoUsuario,
-      token,
     });
   } catch (error) {
     console.error('Erro no controller de registro:', error);
@@ -90,7 +135,7 @@ async function register(req, res) {
   }
 }
 
-// 2. Login Direto (permite login tanto de usuário normal quanto de admin no sistema principal)
+// 2. Login com Bloqueio de Contas Não Ativadas
 async function login(req, res) {
   try {
     const { email, senha } = req.body;
@@ -129,12 +174,22 @@ async function login(req, res) {
         curso: 'Produção em Multimídia',
         bio: 'Coordenação e Administração Geral',
         tipo: 'admin',
+        email_verificado: true,
         created_at: new Date().toISOString(),
       };
     }
 
     if (!usuario) {
       return res.status(401).json({ error: 'E-mail institucional ou senha incorretos.' });
+    }
+
+    // 🔒 BLOQUEIO: Se o e-mail não tiver sido verificado ainda
+    if (usuario.email_verificado === false && usuario.tipo !== 'admin') {
+      return res.status(403).json({
+        error: 'Sua conta ainda não foi ativada. Enviamos um link de confirmação para o seu e-mail institucional. Por favor, acesse seu e-mail e clique no link para liberar o seu acesso.',
+        naoVerificado: true,
+        email: usuario.email,
+      });
     }
 
     const tipoUsuario = usuario.tipo || 'usuario';
@@ -161,6 +216,7 @@ async function login(req, res) {
         curso: usuario.curso,
         bio: usuario.bio,
         tipo: tipoUsuario,
+        email_verificado: usuario.email_verificado !== false,
         created_at: usuario.created_at,
       },
       token,
@@ -171,7 +227,145 @@ async function login(req, res) {
   }
 }
 
-// 3. Perfil do Usuário Autenticado
+// 3. Confirmar E-mail através do Token clicado pelo estudante
+async function confirmarEmail(req, res) {
+  try {
+    const token = req.body?.token || req.query?.token;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Token de confirmação não informado.' });
+    }
+
+    if (!supabase) {
+      return res.status(500).json({ error: 'Cliente Supabase não configurado.' });
+    }
+
+    // Buscar usuário pelo token de verificação
+    const { data: usuario, error: errBusca } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('token_verificacao', token)
+      .maybeSingle();
+
+    if (errBusca || !usuario) {
+      // Se o token já foi consumido, a conta já foi ativada com sucesso
+      return res.json({
+        jaConfirmado: true,
+        message: 'Esta conta já foi confirmada e está liberada! Você já pode acessar a plataforma.',
+      });
+    }
+
+    // Verificar se o token expirou (validade de 24h)
+    if (usuario.token_verificacao_expira && new Date(usuario.token_verificacao_expira) < new Date()) {
+      return res.status(400).json({
+        error: 'O link de confirmação expirou (validade de 24 horas). Solicite um novo link na tela de login.',
+      });
+    }
+
+    // Marcar como ativo/liberado no banco de dados e limpar o token usado
+    const { data: usuarioAtualizado, error: updateError } = await supabase
+      .from('usuarios')
+      .update({
+        email_verificado: true,
+        token_verificacao: null,
+        token_verificacao_expira: null,
+      })
+      .eq('id', usuario.id)
+      .select('id, nome, email, curso, bio, tipo, email_verificado, created_at')
+      .single();
+
+    if (updateError) {
+      console.error('Erro ao ativar conta no Supabase:', updateError);
+      return res.status(500).json({ error: 'Erro ao ativar conta no banco de dados.' });
+    }
+
+    const tipoUsuario = usuarioAtualizado.tipo || 'usuario';
+
+    // Gerar token de sessão para que o estudante entre logado direto após a confirmação
+    const sessionToken = jwt.sign(
+      {
+        id: usuarioAtualizado.id,
+        nome: usuarioAtualizado.nome,
+        email: usuarioAtualizado.email,
+        curso: usuarioAtualizado.curso,
+        tipo: tipoUsuario,
+        role: tipoUsuario === 'admin' ? 'admin' : 'user',
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    console.log(`[CONTA ATIVADA] Estudante confirmado com sucesso: ${usuarioAtualizado.nome} (${usuarioAtualizado.email})`);
+
+    return res.json({
+      message: 'Conta ativada com sucesso! Bem-vindo(a) ao IFPE Chega Junto.',
+      token: sessionToken,
+      usuario: usuarioAtualizado,
+    });
+  } catch (err) {
+    console.error('Erro ao confirmar e-mail:', err);
+    return res.status(500).json({ error: 'Erro interno ao processar validação de e-mail.' });
+  }
+}
+
+// 4. Reenviar Link de Confirmação
+async function reenviarConfirmacao(req, res) {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'E-mail não informado.' });
+    }
+
+    const emailTratado = email.trim().toLowerCase();
+
+    const { data: usuario, error: errBusca } = await supabase
+      .from('usuarios')
+      .select('id, nome, email, email_verificado')
+      .eq('email', emailTratado)
+      .maybeSingle();
+
+    if (errBusca || !usuario) {
+      return res.status(404).json({ error: 'Nenhuma conta encontrada com este e-mail institucional.' });
+    }
+
+    if (usuario.email_verificado) {
+      return res.status(400).json({ error: 'Esta conta já foi ativada. Você já pode fazer login normalmente.' });
+    }
+
+    const tokenVerificacao = crypto.randomBytes(32).toString('hex');
+    const tokenExpira = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const origin = getAppOrigin(req);
+    const confirmationUrl = `${origin}/?token_confirmacao=${tokenVerificacao}`;
+
+    const { error: updateError } = await supabase
+      .from('usuarios')
+      .update({
+        token_verificacao: tokenVerificacao,
+        token_verificacao_expira: tokenExpira,
+      })
+      .eq('id', usuario.id);
+
+    if (updateError) {
+      return res.status(500).json({ error: 'Erro ao gerar novo código de ativação.' });
+    }
+
+    await sendVerificationEmail({
+      to: emailTratado,
+      nome: usuario.nome,
+      confirmationUrl,
+    });
+
+    return res.json({
+      message: 'Novo link de ativação enviado com sucesso para seu e-mail institucional!',
+    });
+  } catch (err) {
+    console.error('Erro ao reenviar confirmação:', err);
+    return res.status(500).json({ error: 'Erro ao processar reenvio de confirmação.' });
+  }
+}
+
+// 5. Perfil do Usuário Autenticado
 async function me(req, res) {
   try {
     return res.json({ usuario: req.user });
@@ -180,7 +374,7 @@ async function me(req, res) {
   }
 }
 
-// 4. Atualizar Perfil no Supabase
+// 6. Atualizar Perfil no Supabase
 async function atualizarPerfil(req, res) {
   try {
     const usuarioId = req.user.id;
@@ -203,29 +397,26 @@ async function atualizarPerfil(req, res) {
       senhaHashNova = await bcrypt.hash(novaSenha.trim(), salt);
     }
 
-    const updateData = {
+    const dadosAtualizacao = {
       nome: nome.trim(),
       curso: curso.trim(),
+      bio: bio !== undefined ? (bio ? bio.trim() : null) : undefined,
     };
 
-    if (bio !== undefined) {
-      updateData.bio = bio ? bio.trim() : null;
-    }
-
     if (senhaHashNova) {
-      updateData.senha = senhaHashNova;
+      dadosAtualizacao.senha = senhaHashNova;
     }
 
     const { data: usuarioAtualizado, error } = await supabase
       .from('usuarios')
-      .update(updateData)
+      .update(dadosAtualizacao)
       .eq('id', usuarioId)
-      .select('id, nome, email, curso, bio, created_at')
+      .select('id, nome, email, curso, bio, tipo, created_at')
       .single();
 
     if (error) {
-      console.error('Erro ao atualizar perfil no Supabase:', error);
-      return res.status(500).json({ error: 'Erro ao salvar alterações no banco de dados.' });
+      console.error('Erro ao atualizar no Supabase:', error);
+      return res.status(500).json({ error: 'Erro ao atualizar dados no banco de dados.' });
     }
 
     const token = jwt.sign(
@@ -234,7 +425,7 @@ async function atualizarPerfil(req, res) {
         nome: usuarioAtualizado.nome,
         email: usuarioAtualizado.email,
         curso: usuarioAtualizado.curso,
-        bio: usuarioAtualizado.bio,
+        tipo: usuarioAtualizado.tipo || 'usuario',
       },
       JWT_SECRET,
       { expiresIn: '7d' }
@@ -246,19 +437,23 @@ async function atualizarPerfil(req, res) {
       token,
     });
   } catch (error) {
-    console.error('Erro ao atualizar perfil:', error);
+    console.error('Erro no controller de atualização:', error);
     return res.status(500).json({ error: 'Erro interno ao atualizar perfil.' });
   }
 }
 
-// 5. Obter Perfil Público de Outro Estudante (por ID)
+// 7. Obter Perfil Público de Outro Estudante
 async function obterPerfilPublico(req, res) {
   try {
     const { id } = req.params;
 
+    if (!id) {
+      return res.status(400).json({ error: 'ID do estudante não informado.' });
+    }
+
     const { data: usuario, error } = await supabase
       .from('usuarios')
-      .select('id, nome, email, curso, bio, created_at')
+      .select('id, nome, email, curso, bio, tipo, created_at')
       .eq('id', id)
       .single();
 
@@ -276,6 +471,8 @@ async function obterPerfilPublico(req, res) {
 module.exports = {
   register,
   login,
+  confirmarEmail,
+  reenviarConfirmacao,
   me,
   atualizarPerfil,
   obterPerfilPublico,

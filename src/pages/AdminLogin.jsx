@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { ShieldCheck, Mail, Lock, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 
 export function AdminLogin({ onNavigateToAdmin, onNavigateToFeed }) {
+  const { setSessionUser } = useAuth();
   const { isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -20,11 +22,15 @@ export function AdminLogin({ onNavigateToAdmin, onNavigateToFeed }) {
     try {
       setCarregando(true);
       setErro('');
-      await api.adminLogin(email, senha);
+      const data = await api.adminLogin(email, senha);
+      const adminData = data.admin || data.usuario;
+      if (setSessionUser && adminData) {
+        setSessionUser(adminData, data.token);
+      }
       if (onNavigateToAdmin) {
-        onNavigateToAdmin();
+        onNavigateToAdmin(data.token);
       } else {
-        window.location.href = '/admin';
+        window.location.assign('/admin');
       }
     } catch (err) {
       setErro(err.message || 'Credenciais de administrador inválidas.');

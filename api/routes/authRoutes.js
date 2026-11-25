@@ -3,6 +3,8 @@ const router = express.Router();
 const {
   register,
   login,
+  confirmarEmail,
+  reenviarConfirmacao,
   me,
   atualizarPerfil,
   obterPerfilPublico,
@@ -11,6 +13,9 @@ const { authMiddleware } = require('../middleware/authMiddleware');
 
 router.post('/registro', register);
 router.post('/login', login);
+router.post('/confirmar-email', confirmarEmail);
+router.get('/confirmar-email', confirmarEmail);
+router.post('/reenviar-confirmacao', reenviarConfirmacao);
 router.get('/me', authMiddleware, me);
 router.put('/perfil', authMiddleware, atualizarPerfil);
 router.get('/usuario/:id', obterPerfilPublico);

@@ -61,16 +61,21 @@ async function adminLogin(req, res) {
           { expiresIn: '7d' }
         );
 
+        const adminPayload = {
+          id: usuario.id,
+          email: usuario.email,
+          nome: usuario.nome,
+          curso: usuario.curso || 'Produção em Multimídia',
+          bio: usuario.bio || '',
+          tipo: 'admin',
+          role: 'admin',
+        };
+
         return res.json({
           message: 'Login de administrador realizado com sucesso.',
           token,
-          admin: {
-            id: usuario.id,
-            email: usuario.email,
-            nome: usuario.nome,
-            tipo: 'admin',
-            role: 'admin',
-          },
+          admin: adminPayload,
+          usuario: adminPayload,
         });
       }
     }
@@ -88,15 +93,21 @@ async function adminLogin(req, res) {
         { expiresIn: '7d' }
       );
 
+      const adminPayload = {
+        id: '00000000-0000-0000-0000-000000000001',
+        email: emailTratado,
+        nome: 'Administrador IFPE',
+        curso: 'Produção em Multimídia',
+        bio: 'Coordenação e Administração Geral',
+        tipo: 'admin',
+        role: 'admin',
+      };
+
       return res.json({
         message: 'Login administrativo (.env) realizado com sucesso.',
         token,
-        admin: {
-          email: emailTratado,
-          nome: 'Administrador IFPE',
-          tipo: 'admin',
-          role: 'admin',
-        },
+        admin: adminPayload,
+        usuario: adminPayload,
       });
     }
 
@@ -117,9 +128,18 @@ async function getStats(req, res) {
     }
 
     // 1. Obter usuários com contagem por curso e por tipo
-    const { data: usuarios, error: errUsuarios } = await supabase
+    let { data: usuarios, error: errUsuarios } = await supabase
       .from('usuarios')
       .select('id, nome, curso, tipo, created_at');
+
+    // Fallback gracioso se a coluna tipo ainda não foi criada no banco
+    if (errUsuarios && errUsuarios.message && errUsuarios.message.includes('tipo')) {
+      const fallback = await supabase
+        .from('usuarios')
+        .select('id, nome, curso, created_at');
+      usuarios = fallback.data;
+      errUsuarios = fallback.error;
+    }
 
     if (errUsuarios) {
       throw errUsuarios;
@@ -189,19 +209,30 @@ async function listarUsuarios(req, res) {
       return res.status(500).json({ error: 'Cliente Supabase não está configurado.' });
     }
 
-    const { data: usuarios, error } = await supabase
+    let { data: usuarios, error } = await supabase
       .from('usuarios')
-      .select('id, nome, email, curso, bio, avatar_url, tipo, created_at')
+      .select('id, nome, email, curso, bio, tipo, email_verificado, created_at')
       .order('created_at', { ascending: false });
 
+    // Fallback gracioso caso alguma coluna nova ainda não tenha sido criada no banco
+    if (error && error.message) {
+      const fallback = await supabase
+        .from('usuarios')
+        .select('id, nome, email, curso, bio, created_at')
+        .order('created_at', { ascending: false });
+      usuarios = (fallback.data || []).map((u) => ({ ...u, tipo: 'usuario', email_verificado: true }));
+      error = fallback.error;
+    }
+
     if (error) {
+      console.error('Erro retornado pelo Supabase em listarUsuarios:', error);
       throw error;
     }
 
     return res.json({ usuarios: usuarios || [] });
   } catch (err) {
     console.error('Erro ao listar usuários:', err);
-    return res.status(500).json({ error: 'Erro ao listar usuários cadastrados.' });
+    return res.status(500).json({ error: err.message || 'Erro ao listar usuários cadastrados.' });
   }
 }
 

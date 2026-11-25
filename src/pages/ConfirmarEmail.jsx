@@ -1,37 +1,43 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { CheckCircle2, AlertCircle, ArrowRight, Loader2, Sparkles, Sun, Moon } from 'lucide-react';
+import {
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
+  Loader2,
+  ShieldCheck,
+  Sun,
+  Moon,
+  LogIn,
+} from 'lucide-react';
 
 export function ConfirmarEmail({ token, onConcluido, onIrParaLogin }) {
   const { confirmarEmail } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [status, setStatus] = useState('processando'); // 'processando' | 'sucesso' | 'erro'
-  const [mensagem, setMensagem] = useState('Validando seu e-mail institucional...');
+  const [mensagem, setMensagem] = useState('Validando seu e-mail institucional no banco de dados...');
+  const [dadosSessao, setDadosSessao] = useState(null);
+  const validacaoExecutada = useRef(false);
 
   useEffect(() => {
-    let ativo = true;
+    if (validacaoExecutada.current) return;
+    validacaoExecutada.current = true;
 
     async function validar() {
       try {
         const resposta = await confirmarEmail(token);
-        if (!ativo) return;
         setStatus('sucesso');
-        setMensagem(resposta.message || 'Conta ativada com sucesso! Bem-vindo(a) ao IFPE Chega Junto.');
+        setMensagem(
+          resposta.message || 'Conta ativada com sucesso! Seu acesso ao IFPE Chega Junto está liberado.'
+        );
+        setDadosSessao(resposta);
 
-        // Limpar token da URL para não reenviar em reload
+        // Limpar token da URL para manter limpo o endereço
         if (window.history?.replaceState) {
           window.history.replaceState({}, document.title, window.location.pathname);
         }
-
-        // Aguardar 2.5 segundos para o usuário ver o feedback antes de entrar
-        setTimeout(() => {
-          if (ativo && onConcluido) {
-            onConcluido();
-          }
-        }, 2500);
       } catch (err) {
-        if (!ativo) return;
         setStatus('erro');
         setMensagem(err.message || 'Link de confirmação inválido ou expirado.');
       }
@@ -41,17 +47,30 @@ export function ConfirmarEmail({ token, onConcluido, onIrParaLogin }) {
       validar();
     } else {
       setStatus('erro');
-      setMensagem('Nenhum código de confirmação foi encontrado no link.');
+      setMensagem('Nenhum código de confirmação foi informado no link.');
     }
+  }, [token, confirmarEmail]);
 
-    return () => {
-      ativo = false;
-    };
-  }, [token]);
+  function handleEntrarPlataforma() {
+    if (onConcluido) {
+      onConcluido(dadosSessao);
+    } else {
+      window.location.assign('/');
+    }
+  }
+
+  function handleIrLogin() {
+    if (onIrParaLogin) {
+      onIrParaLogin();
+    } else {
+      window.location.assign('/');
+    }
+  }
 
   return (
     <div style={styles.container}>
       <div style={styles.card} className="auth-card animate-fade-in">
+        {/* Barra superior de tema */}
         <div style={styles.topBar}>
           <button
             type="button"
@@ -64,66 +83,97 @@ export function ConfirmarEmail({ token, onConcluido, onIrParaLogin }) {
           </button>
         </div>
 
+        {/* Cabeçalho */}
         <div style={styles.header}>
           <div style={styles.logoBadge}>
             <span style={styles.logoDotRed}></span>
             <span style={styles.logoDotWhite}></span>
             <span style={styles.logoDotWhite}></span>
           </div>
-          <h1 style={styles.title}>Validação de Acesso</h1>
-          <p style={styles.subtitle}>IFPE Campus Olinda</p>
+          <h1 style={styles.title}>IFPE Chega Junto</h1>
+          <p style={styles.subtitle}>Campus Olinda • Validação de Cadastro</p>
         </div>
 
+        {/* 1. ESTADO: PROCESSANDO */}
         {status === 'processando' && (
           <div style={styles.contentBox}>
             <div style={styles.iconWrapperLoading}>
-              <Loader2 size={36} color="var(--color-primary)" className="animate-spin" />
+              <Loader2 size={38} color="#16a34a" className="animate-spin" />
             </div>
             <h2 style={styles.boxTitle}>Validando Confirmação...</h2>
             <p style={styles.boxDescription}>
-              Estamos verificando suas credenciais discentes no banco de dados. Aguarde um instante.
+              Estamos verificando suas credenciais discentes e ativando o seu acesso no banco de dados.
             </p>
           </div>
         )}
 
+        {/* 2. ESTADO: SUCESSO - TELA OFICIAL "OK, VOCÊ PODE ACESSAR" */}
         {status === 'sucesso' && (
           <div style={styles.contentBox}>
             <div style={styles.iconWrapperSuccess}>
-              <CheckCircle2 size={40} color="#16a34a" />
+              <CheckCircle2 size={46} color="#16a34a" />
             </div>
-            <h2 style={{ ...styles.boxTitle, color: '#16a34a' }}>Conta Ativada com Sucesso!</h2>
-            <p style={styles.boxDescription}>{mensagem}</p>
-            <div style={styles.successNote}>
-              <Sparkles size={16} color="#16a34a" />
-              <span>Entrando automaticamente na plataforma...</span>
+            
+            <h2 style={styles.successTitle}>Tudo pronto! Você já pode acessar</h2>
+            <p style={styles.boxDescription}>
+              Seu e-mail institucional foi confirmado com sucesso e sua conta discente foi <strong>liberada no sistema</strong>.
+            </p>
+
+            {/* Cartão de Confirmação dos Dados */}
+            <div style={styles.statusCard}>
+              <div style={styles.statusRow}>
+                <ShieldCheck size={18} color="#16a34a" />
+                <span style={styles.statusLabel}>Status do Acesso:</span>
+                <span style={styles.statusBadgeLiberado}>Conta Ativa & Liberada</span>
+              </div>
+              <div style={styles.statusRow}>
+                <span style={styles.statusDot}>•</span>
+                <span style={styles.statusLabel}>Rede:</span>
+                <span style={styles.statusValue}>IFPE Campus Olinda</span>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={onConcluido}
-              style={styles.primaryBtn}
-            >
-              <span>Acessar o Chega Junto Agora</span>
-              <ArrowRight size={18} />
-            </button>
+
+            {/* Botões de Ação */}
+            <div style={styles.actionsContainer}>
+              <button
+                type="button"
+                onClick={handleEntrarPlataforma}
+                style={styles.primaryBtn}
+              >
+                <span>Acessar a Plataforma Agora</span>
+                <ArrowRight size={18} />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleIrLogin}
+                style={styles.secondaryBtn}
+              >
+                <LogIn size={16} style={{ marginRight: '6px' }} />
+                Ir para a Tela de Login
+              </button>
+            </div>
           </div>
         )}
 
+        {/* 3. ESTADO: ERRO OU LINK INVÁLIDO */}
         {status === 'erro' && (
           <div style={styles.contentBox}>
             <div style={styles.iconWrapperError}>
-              <AlertCircle size={40} color="var(--color-accent)" />
+              <AlertCircle size={44} color="#dc2626" />
             </div>
-            <h2 style={{ ...styles.boxTitle, color: 'var(--color-accent)' }}>Falha na Validação</h2>
+            <h2 style={styles.errorTitle}>Falha na Validação</h2>
             <p style={styles.boxDescription}>{mensagem}</p>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
-              O link pode ter expirado (válido por 24h) ou já ter sido utilizado. Você pode solicitar um novo link na página de login.
+            <p style={styles.errorHelpText}>
+              Se você já ativou sua conta anteriormente, você já pode fazer login normalmente.
             </p>
+
             <button
               type="button"
-              onClick={onIrParaLogin}
+              onClick={handleIrLogin}
               style={styles.primaryBtn}
             >
-              <span>Voltar ao Login</span>
+              <span>Ir para a Tela de Login</span>
               <ArrowRight size={18} />
             </button>
           </div>
@@ -139,18 +189,18 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'var(--bg-page, #f3f4f6)',
     padding: '20px',
-    backgroundColor: 'var(--bg-page)',
   },
   card: {
     width: '100%',
     maxWidth: '460px',
-    backgroundColor: 'var(--bg-card)',
-    borderRadius: 'var(--radius-lg)',
-    padding: '32px',
-    boxShadow: 'var(--shadow-lg)',
-    border: '1px solid var(--border-color)',
-    textAlign: 'center',
+    backgroundColor: 'var(--bg-card, #ffffff)',
+    borderRadius: '16px',
+    padding: '32px 28px',
+    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
+    border: '1px solid var(--border-color, #e5e7eb)',
+    boxSizing: 'border-box',
   },
   topBar: {
     display: 'flex',
@@ -162,13 +212,15 @@ const styles = {
     alignItems: 'center',
     gap: '6px',
     padding: '5px 10px',
-    borderRadius: 'var(--radius-full)',
-    backgroundColor: 'var(--bg-hover)',
-    border: '1px solid var(--border-color)',
-    color: 'var(--text-main)',
+    borderRadius: '20px',
+    backgroundColor: 'var(--bg-hover, #f3f4f6)',
+    border: '1px solid var(--border-color, #e5e7eb)',
+    color: 'var(--text-main, #374151)',
+    cursor: 'pointer',
   },
   header: {
-    marginBottom: '24px',
+    textAlign: 'center',
+    marginBottom: '20px',
   },
   logoBadge: {
     width: '44px',
@@ -195,48 +247,48 @@ const styles = {
     backgroundColor: '#ffffff',
   },
   title: {
-    fontSize: '1.45rem',
+    fontSize: '1.4rem',
     fontWeight: '800',
-    letterSpacing: '-0.02em',
-    color: 'var(--text-main)',
-    marginBottom: '4px',
+    color: 'var(--text-main, #111827)',
+    margin: '0 0 4px 0',
   },
   subtitle: {
     fontSize: '0.86rem',
-    color: 'var(--text-muted)',
+    color: 'var(--text-muted, #6b7280)',
+    margin: 0,
   },
   contentBox: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    padding: '16px 8px',
+    textAlign: 'center',
   },
   iconWrapperLoading: {
-    width: '64px',
-    height: '64px',
+    width: '68px',
+    height: '68px',
     borderRadius: '50%',
-    backgroundColor: 'var(--color-primary-light)',
+    backgroundColor: 'rgba(22, 163, 74, 0.1)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: '16px',
   },
   iconWrapperSuccess: {
-    width: '68px',
-    height: '68px',
+    width: '76px',
+    height: '76px',
     borderRadius: '50%',
-    backgroundColor: '#ecfdf5',
+    backgroundColor: 'rgba(22, 163, 74, 0.12)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: '16px',
-    boxShadow: '0 4px 12px rgba(22, 163, 74, 0.2)',
+    boxShadow: '0 4px 14px rgba(22, 163, 74, 0.2)',
   },
   iconWrapperError: {
-    width: '68px',
-    height: '68px',
+    width: '76px',
+    height: '76px',
     borderRadius: '50%',
-    backgroundColor: 'var(--color-accent-light)',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -244,41 +296,109 @@ const styles = {
   },
   boxTitle: {
     fontSize: '1.25rem',
+    fontWeight: '700',
+    color: 'var(--text-main, #111827)',
+    margin: '0 0 8px 0',
+  },
+  successTitle: {
+    fontSize: '1.35rem',
     fontWeight: '800',
-    color: 'var(--text-main)',
-    marginBottom: '10px',
+    color: '#15803d',
+    margin: '0 0 8px 0',
+  },
+  errorTitle: {
+    fontSize: '1.3rem',
+    fontWeight: '700',
+    color: '#dc2626',
+    margin: '0 0 8px 0',
   },
   boxDescription: {
-    fontSize: '0.9rem',
-    color: 'var(--text-muted)',
-    lineHeight: '1.5',
-    marginBottom: '18px',
+    fontSize: '0.92rem',
+    lineHeight: '1.6',
+    color: 'var(--text-main, #4b5563)',
+    margin: '0 0 16px 0',
   },
-  successNote: {
+  errorHelpText: {
+    fontSize: '0.84rem',
+    color: 'var(--text-muted, #6b7280)',
+    marginBottom: '20px',
+  },
+  statusCard: {
+    width: '100%',
+    backgroundColor: 'rgba(22, 163, 74, 0.06)',
+    border: '1px solid rgba(22, 163, 74, 0.25)',
+    borderRadius: '10px',
+    padding: '14px 16px',
+    margin: '0 0 24px 0',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    boxSizing: 'border-box',
+    textAlign: 'left',
+  },
+  statusRow: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: '#ecfdf5',
-    color: '#065f46',
-    padding: '8px 16px',
-    borderRadius: 'var(--radius-full)',
-    fontSize: '0.82rem',
+    fontSize: '0.86rem',
+  },
+  statusLabel: {
+    color: 'var(--text-muted, #6b7280)',
+    fontWeight: '500',
+  },
+  statusDot: {
+    color: '#16a34a',
+    fontWeight: 'bold',
+    fontSize: '1.1rem',
+  },
+  statusValue: {
+    fontWeight: '600',
+    color: 'var(--text-main, #111827)',
+  },
+  statusBadgeLiberado: {
+    backgroundColor: '#16a34a',
+    color: '#ffffff',
+    fontSize: '0.74rem',
     fontWeight: '700',
-    marginBottom: '20px',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    letterSpacing: '0.3px',
+  },
+  actionsContainer: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
   },
   primaryBtn: {
-    display: 'inline-flex',
+    width: '100%',
+    padding: '13px 20px',
+    backgroundColor: '#16a34a',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '10px',
+    fontSize: '0.95rem',
+    fontWeight: '700',
+    cursor: 'pointer',
+    display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
-    backgroundColor: 'var(--color-primary)',
-    color: '#ffffff',
-    padding: '12px 24px',
-    borderRadius: 'var(--radius-md)',
-    fontSize: '0.92rem',
-    fontWeight: '700',
-    boxShadow: '0 3px 8px rgba(22, 163, 74, 0.3)',
-    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(22, 163, 74, 0.3)',
+    transition: 'background-color 0.2s ease',
+  },
+  secondaryBtn: {
     width: '100%',
+    padding: '11px 16px',
+    backgroundColor: 'transparent',
+    color: 'var(--text-main, #374151)',
+    border: '1px solid var(--border-color, #d1d5db)',
+    borderRadius: '10px',
+    fontSize: '0.88rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 };

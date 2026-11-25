@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import {
   Users,
   MessageSquare,
@@ -30,6 +31,7 @@ const CURSOS_OFICIAIS = [
 
 export function AdminDashboard({ onNavigateToFeed, onNavigateToLogin }) {
   const { isDark } = useTheme();
+  const { logout: authLogout } = useAuth();
   const [abaAtiva, setAbaAtiva] = useState('metricas'); // 'metricas' | 'usuarios' | 'emails'
   const [stats, setStats] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
@@ -81,10 +83,11 @@ export function AdminDashboard({ onNavigateToFeed, onNavigateToLogin }) {
 
   function handleLogout() {
     api.adminLogout();
+    if (authLogout) authLogout();
     if (onNavigateToLogin) {
       onNavigateToLogin();
     } else {
-      window.location.href = '/admin/login';
+      window.location.assign('/admin/login');
     }
   }
 

@@ -47,6 +47,28 @@ export const api = {
     return data;
   },
 
+  async confirmarEmail(token) {
+    const res = await fetch(`${API_BASE_URL}/auth/confirmar-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao validar confirmação de e-mail.');
+    return data;
+  },
+
+  async reenviarConfirmacao(email) {
+    const res = await fetch(`${API_BASE_URL}/auth/reenviar-confirmacao`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao reenviar e-mail de confirmação.');
+    return data;
+  },
+
   async getMe() {
     const res = await fetch(`${API_BASE_URL}/auth/me`, {
       headers: getAuthHeaders(),
@@ -147,12 +169,19 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Falha no login de administrador.');
     if (data.token) {
       localStorage.setItem('ifpe_admin_token', data.token);
+      localStorage.setItem('ifpe_Conecta_token', data.token);
+    }
+    const userPayload = data.admin || data.usuario;
+    if (userPayload) {
+      localStorage.setItem('ifpe_Conecta_user', JSON.stringify(userPayload));
     }
     return data;
   },
 
   adminLogout() {
     localStorage.removeItem('ifpe_admin_token');
+    localStorage.removeItem('ifpe_Conecta_token');
+    localStorage.removeItem('ifpe_Conecta_user');
   },
 
   async adminGetStats() {
