@@ -16,3 +16,7 @@ dist-ssr/
 # Sistema Operacional
 .DS_Store
 Thumbs.db
+
+# Cache de Migrations Local
+.migrations_cache.json
+api/migrations/.migrations_cache.json

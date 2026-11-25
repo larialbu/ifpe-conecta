@@ -17,7 +17,7 @@ export function ConfirmarEmail({ token, onConcluido, onIrParaLogin }) {
         const resposta = await confirmarEmail(token);
         if (!ativo) return;
         setStatus('sucesso');
-        setMensagem(resposta.message || 'Conta ativada com sucesso! Bem-vindo(a) ao IFPE Olinda Conecta.');
+        setMensagem(resposta.message || 'Conta ativada com sucesso! Bem-vindo(a) ao IFPE Chega Junto.');
 
         // Limpar token da URL para não reenviar em reload
         if (window.history?.replaceState) {
@@ -102,7 +102,7 @@ export function ConfirmarEmail({ token, onConcluido, onIrParaLogin }) {
               onClick={onConcluido}
               style={styles.primaryBtn}
             >
-              <span>Acessar o Conecta Agora</span>
+              <span>Acessar o Chega Junto Agora</span>
               <ArrowRight size={18} />
             </button>
           </div>

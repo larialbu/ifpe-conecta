@@ -13,9 +13,12 @@ import {
   HelpCircle,
   Lightbulb,
   Megaphone,
-  Rocket
+  Rocket,
+  Hash,
+  X
 } from 'lucide-react';
 import { PerfilModal } from '../components/PerfilModal';
+import { VerPerfilModal } from '../components/VerPerfilModal';
 
 const CATEGORIAS_MOBILE = [
   { id: 'geral', label: 'Geral', icon: Compass, color: '#16a34a' },
@@ -27,11 +30,13 @@ const CATEGORIAS_MOBILE = [
 
 export function Feed() {
   const [posts, setPosts] = useState([]);
+  const [todosPosts, setTodosPosts] = useState([]);
   const [categoriaAtiva, setCategoriaAtiva] = useState('geral');
   const [termoBusca, setTermoBusca] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [perfilModalAberto, setPerfilModalAberto] = useState(false);
+  const [perfilVisualizar, setPerfilVisualizar] = useState(null);
 
   // Carregar publicações
   const carregarPosts = useCallback(async (categoria, busca) => {
@@ -40,6 +45,11 @@ export function Feed() {
       setErro('');
       const data = await api.getPosts(categoria, busca);
       setPosts(data);
+
+      // Se for consulta sem busca e geral, armazena como lista completa de referência
+      if (!busca && (!categoria || categoria === 'geral')) {
+        setTodosPosts(data);
+      }
     } catch (err) {
       console.error('Erro ao buscar posts:', err);
       setErro(err.message || 'Erro ao carregar o feed.');
@@ -54,20 +64,50 @@ export function Feed() {
 
   // Contagem de posts por categoria para a Sidebar
   const postsCountPorCategoria = React.useMemo(() => {
-    const counts = { geral: posts.length, duvidas: 0, conselhos: 0, avisos: 0, projetos: 0 };
-    posts.forEach((p) => {
+    const counts = { geral: 0, duvidas: 0, conselhos: 0, avisos: 0, projetos: 0 };
+    const fonte = todosPosts.length > 0 ? todosPosts : posts;
+    counts.geral = fonte.length;
+    fonte.forEach((p) => {
       if (counts[p.categoria] !== undefined) {
         counts[p.categoria] += 1;
       }
     });
     return counts;
-  }, [posts]);
+  }, [todosPosts, posts]);
+
+  // Extrair hashtags reais dinamicamente das publicações
+  const topicosEmAlta = React.useMemo(() => {
+    const fonte = todosPosts.length > 0 ? todosPosts : posts;
+    const contagem = {};
+
+    fonte.forEach((post) => {
+      const texto = `${post.titulo || ''} ${post.conteudo || ''}`;
+      // Capturar palavras que começam com # (incluindo letras acentuadas e números)
+      const matches = texto.match(/#[a-zA-Z0-9_\u00C0-\u017F]+/g);
+      if (matches) {
+        // Evita contar a mesma hashtag mais de uma vez na mesma postagem
+        const tagsUnicas = new Set(matches.map((m) => m.toLowerCase()));
+        tagsUnicas.forEach((tagLower) => {
+          if (!contagem[tagLower]) {
+            const original = matches.find((m) => m.toLowerCase() === tagLower);
+            contagem[tagLower] = { tag: original, count: 0 };
+          }
+          contagem[tagLower].count += 1;
+        });
+      }
+    });
+
+    return Object.values(contagem)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+  }, [todosPosts, posts]);
 
   // Handler para criar publicação
   async function handleCriarPost(novoPostPayload) {
     const postCriado = await api.createPost(novoPostPayload);
-    // Adiciona no topo do feed
+    // Adiciona no topo do feed e atualiza lista de referência imediatamente
     setPosts((prev) => [postCriado, ...prev]);
+    setTodosPosts((prev) => [postCriado, ...prev]);
   }
 
   // Handler para curtir
@@ -94,13 +134,28 @@ export function Feed() {
     return comentario;
   }
 
+  // Handler para trocar categoria (limpa hashtag ativa para voltar ao feed completo)
+  function handleSelectCategoria(cat) {
+    setCategoriaAtiva(cat);
+    setTermoBusca('');
+  }
+
+  // Handler para selecionar/alternar hashtag (se clicar na mesma, sai dela!)
+  function handleSelectTag(tag) {
+    if (termoBusca === tag || termoBusca === tag.replace('#', '')) {
+      setTermoBusca('');
+    } else {
+      setTermoBusca(tag);
+    }
+  }
+
   return (
     <div style={styles.pageWrapper}>
       {/* Navbar Superior */}
       <Navbar
         termoBusca={termoBusca}
         setTermoBusca={setTermoBusca}
-        onSelectCategoria={(cat) => setCategoriaAtiva(cat)}
+        onSelectCategoria={handleSelectCategoria}
         onOpenPerfil={() => setPerfilModalAberto(true)}
       />
 
@@ -110,13 +165,21 @@ export function Feed() {
         onClose={() => setPerfilModalAberto(false)}
       />
 
+      {/* Popup de Perfil do Estudante em Tela Toda */}
+      {perfilVisualizar && (
+        <VerPerfilModal
+          usuario={perfilVisualizar}
+          onClose={() => setPerfilVisualizar(null)}
+        />
+      )}
+
       {/* Conteúdo Principal com Layout Fluido e Responsivo */}
       <main style={styles.mainContainer} className="feed-layout">
         {/* Coluna 1: Sidebar Esquerda (Desktop) */}
         <div style={styles.leftColumn} className="sidebar-column">
           <SidebarCategorias
             categoriaAtiva={categoriaAtiva}
-            onSelectCategoria={(cat) => setCategoriaAtiva(cat)}
+            onSelectCategoria={handleSelectCategoria}
             postsCountPorCategoria={postsCountPorCategoria}
           />
         </div>
@@ -133,7 +196,7 @@ export function Feed() {
                 <button
                   type="button"
                   key={cat.id}
-                  onClick={() => setCategoriaAtiva(cat.id)}
+                  onClick={() => handleSelectCategoria(cat.id)}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -173,6 +236,30 @@ export function Feed() {
             onPostCriado={handleCriarPost}
             categoriaAtiva={categoriaAtiva}
           />
+
+          {/* Banner de Hashtag/Filtro Ativo com Botão Fácil para Sair */}
+          {termoBusca && (
+            <div style={styles.activeFilterBanner} className="animate-fade-in">
+              <div style={styles.activeFilterLeft}>
+                <div style={styles.filterTagIcon}>
+                  <Hash size={16} color="var(--color-primary)" />
+                </div>
+                <div style={styles.filterTextGroup}>
+                  <span style={styles.filterSubtitle}>Filtrando pelo tópico</span>
+                  <span style={styles.filterTitle}>{termoBusca}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTermoBusca('')}
+                style={styles.clearFilterBtn}
+                title="Sair desta hashtag e ver todas as publicações"
+              >
+                <X size={15} />
+                <span>Sair da hashtag / Ver todas</span>
+              </button>
+            </div>
+          )}
 
           {/* Barra de Filtro / Status do Feed */}
           <div style={styles.feedStatusBar}>
@@ -234,9 +321,19 @@ export function Feed() {
                 <h4 style={styles.emptyTitle}>Nenhuma publicação encontrada</h4>
                 <p style={styles.emptyText}>
                   {termoBusca
-                    ? `Não encontramos resultados para "${termoBusca}". Tente outro termo.`
+                    ? `Não encontramos resultados com o tópico "${termoBusca}".`
                     : 'Ainda não há postagens nesta categoria. Seja o primeiro a compartilhar algo com seus colegas!'}
                 </p>
+                {termoBusca && (
+                  <button
+                    type="button"
+                    onClick={() => setTermoBusca('')}
+                    style={styles.emptyClearBtn}
+                  >
+                    <X size={15} />
+                    <span>Sair da hashtag e ver todas as postagens</span>
+                  </button>
+                )}
               </div>
             )}
 
@@ -246,6 +343,8 @@ export function Feed() {
                 post={post}
                 onLike={handleLike}
                 onAddComment={handleAddComment}
+                onSelectTag={handleSelectTag}
+                onVerPerfil={(u) => setPerfilVisualizar(u)}
               />
             ))}
           </div>
@@ -253,7 +352,11 @@ export function Feed() {
 
         {/* Coluna 3: Sidebar Direita (Widgets rápidos / Links IFPE) */}
         <div style={styles.rightColumn} className="widgets-column">
-          <WidgetsSidebar onSelectTag={(tag) => setTermoBusca(tag)} />
+          <WidgetsSidebar
+            onSelectTag={handleSelectTag}
+            topicos={topicosEmAlta}
+            tagAtiva={termoBusca}
+          />
         </div>
       </main>
     </div>
@@ -393,5 +496,79 @@ const styles = {
     borderRadius: 'var(--radius-sm)',
     fontWeight: '600',
     fontSize: '0.76rem',
+  },
+  activeFilterBanner: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'var(--color-primary-subtle, rgba(22, 163, 74, 0.08))',
+    border: '1px solid var(--color-primary)',
+    borderRadius: 'var(--radius-md)',
+    padding: '10px 14px',
+    marginBottom: '14px',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  activeFilterLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  filterTagIcon: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--color-primary-light)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  filterTextGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  filterSubtitle: {
+    fontSize: '0.7rem',
+    color: 'var(--text-muted)',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+  },
+  filterTitle: {
+    fontSize: '0.96rem',
+    fontWeight: '800',
+    color: 'var(--color-primary)',
+  },
+  clearFilterBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '7px 14px',
+    backgroundColor: 'var(--color-primary)',
+    color: '#ffffff',
+    borderRadius: 'var(--radius-full)',
+    border: 'none',
+    fontSize: '0.82rem',
+    fontWeight: '700',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+    boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+  },
+  emptyClearBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '9px 18px',
+    backgroundColor: 'var(--color-primary)',
+    color: '#ffffff',
+    borderRadius: 'var(--radius-full)',
+    border: 'none',
+    fontSize: '0.84rem',
+    fontWeight: '700',
+    cursor: 'pointer',
+    marginTop: '14px',
+    transition: 'all 0.15s ease',
+    boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
   },
 };

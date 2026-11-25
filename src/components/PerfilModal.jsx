@@ -16,8 +16,9 @@ import {
 
 const CURSOS_IFPE = [
   'Artes Visuais',
-  'Computação Gráfica',
-  'Técnico em Computação Gráfica',
+  'Computação Gráfica Integrado',
+  'Computação Gráfica Subsequente',
+  'Produção em Multimídia',
 ];
 
 export function PerfilModal({ isOpen, onClose }) {
@@ -29,10 +30,10 @@ export function PerfilModal({ isOpen, onClose }) {
   const [mostrarAlterarSenha, setMostrarAlterarSenha] = useState(false);
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
-
   const [salvando, setSalvando] = useState(false);
   const [mensagemSucesso, setMensagemSucesso] = useState('');
   const [mensagemErro, setMensagemErro] = useState('');
+
 
   // Atualiza os dados quando o modal abre ou o usuário muda
   React.useEffect(() => {
@@ -110,7 +111,7 @@ export function PerfilModal({ isOpen, onClose }) {
             <div style={styles.avatarLarge}>{iniciais}</div>
             <div>
               <h2 style={styles.modalTitle}>Meu Perfil Estudantil</h2>
-              <span style={styles.modalSubtitle}>Gerencie suas informações no IFPE Olinda Conecta</span>
+              <span style={styles.modalSubtitle}>Gerencie suas informações no IFPE Chega Junto</span>
             </div>
           </div>
           <button onClick={onClose} style={styles.closeBtn} title="Fechar modal">
@@ -200,7 +201,7 @@ export function PerfilModal({ isOpen, onClose }) {
             </div>
             <div style={styles.inputWrapper}>
               <textarea
-                placeholder="Ex: Aluno do 4º período, focado em frontend e projetos de extensão. Busco equipes para hackathons e TCC."
+                placeholder="Ex: Aluno do 4º período, focado em frontend e projetos de extensão. Busco equipes para hackathons e projetos de divulgação."
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 style={styles.textarea}

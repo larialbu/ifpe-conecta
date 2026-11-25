@@ -1,4 +1,4 @@
-# 📌 Prompt de Instrução para Criação do Sistema: IFPE Olinda Conecta (Reddit/Comunidade Simplificada)
+# 📌 Prompt de Instrução para Criação do Sistema: IFPE Chega Junto (Reddit/Comunidade Simplificada)
 
 ---
 
@@ -33,7 +33,7 @@ Seguir estritamente o padrão de cores institucionais do IFPE:
 
 ### 2. Layout da Interface (Baseado nas referências Reddit/LinkedIn)
 - **Barra de Navegação Superior (Header):**
-  - Logotipo/Nome: "IFPE Olinda Conecta".
+  - Logotipo/Nome: "IFPE Chega Junto".
   - Barra de busca simples (opcional/placeholders).
   - Foto/Nome do usuário logado e botão de Sair (Logout).
 - **Barra Lateral Esquerda (Menu de Categorias / Espaços):**

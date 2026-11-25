@@ -1,4 +1,4 @@
-# 🎓 IFPE Olinda Conecta — Monorepo Full Stack para Vercel
+# 🎓 IFPE Chega Junto — Monorepo Full Stack para Vercel
 
 Plataforma de integração e fórum estudantil do **IFPE Campus Olinda** desenvolvida como **Monorepo Full Stack** (React + Express Serverless + Supabase), projetada especificamente para deploy simplificado em um único projeto na **Vercel**.
 
@@ -68,7 +68,7 @@ GABI/
    ```bash
    git init
    git add .
-   git commit -m "feat: ifpe olinda Conecta monorepo full stack"
+   git commit -m "feat: ifpe chega junto monorepo full stack"
    git branch -M main
    git remote add origin https://gitConecta.com/SEU_USUARIO/SEU_REPOSITORIO.git
    git push -u origin main

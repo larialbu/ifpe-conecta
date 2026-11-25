@@ -29,7 +29,7 @@ const CATEGORIAS = [
   {
     id: 'conselhos',
     label: 'Conselhos & Dicas',
-    descricao: 'Estágios e vida acadêmica',
+    descricao: 'Vida pessoal e acadêmica',
     icon: Lightbulb,
     color: '#d97706', // Amber
     bgActive: '#fef3c7',
@@ -45,7 +45,7 @@ const CATEGORIAS = [
   {
     id: 'projetos',
     label: 'Projetos',
-    descricao: 'Extensão, TCC e oportunidades',
+    descricao: 'Extensão, divulgação e oportunidades',
     icon: Rocket,
     color: '#7c3aed', // Purple
     bgActive: '#ede9fe',

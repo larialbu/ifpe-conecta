@@ -15,12 +15,12 @@ async function listarPosts(req, res) {
         categoria,
         likes_count,
         created_at,
-        autor:usuarios (id, nome, curso),
+        autor:usuarios (id, nome, email, curso, bio, created_at),
         comentarios (
           id,
           conteudo,
           created_at,
-          autor:usuarios (id, nome, curso)
+          autor:usuarios (id, nome, email, curso, bio, created_at)
         )
       `)
       .order('created_at', { ascending: false });
@@ -89,7 +89,7 @@ async function criarPost(req, res) {
         categoria,
         likes_count,
         created_at,
-        autor:usuarios (id, nome, curso)
+        autor:usuarios (id, nome, email, curso, bio, created_at)
       `)
       .single();
 
@@ -212,7 +212,7 @@ async function adicionarComentario(req, res) {
         post_id,
         conteudo,
         created_at,
-        autor:usuarios (id, nome, curso)
+        autor:usuarios (id, nome, email, curso, bio, created_at)
       `)
       .single();
 
@@ -243,7 +243,7 @@ async function listarComentarios(req, res) {
         post_id,
         conteudo,
         created_at,
-        autor:usuarios (id, nome, curso)
+        autor:usuarios (id, nome, email, curso, bio, created_at)
       `)
       .eq('post_id', id)
       .order('created_at', { ascending: true });

@@ -55,6 +55,15 @@ export const api = {
     return data;
   },
 
+  async getPerfilPublico(usuarioId) {
+    const res = await fetch(`${API_BASE_URL}/auth/usuario/${usuarioId}`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao obter dados do estudante.');
+    return data.usuario;
+  },
+
   // Publicações
   async getPosts(categoria = 'geral', busca = '') {
     const params = new URLSearchParams();

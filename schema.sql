@@ -1,5 +1,5 @@
 -- ==============================================================================
--- 📌 IFPE Olinda Conecta - Script de Criação do Banco de Dados (Supabase / PostgreSQL)
+-- 📌 IFPE Chega Junto - Script de Criação do Banco de Dados (Supabase / PostgreSQL)
 -- ==============================================================================
 -- Instruções:
 -- 1. Acesse o painel do Supabase (https://supabase.com/dashboard).
@@ -11,6 +11,13 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- Tabela de Controle de Migrações
+CREATE TABLE IF NOT EXISTS public._migrations (
+    id SERIAL PRIMARY KEY,
+    nome TEXT UNIQUE NOT NULL,
+    executado_em TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- 2. Tabela de Usuários (Estudantes do IFPE Olinda)
 CREATE TABLE IF NOT EXISTS public.usuarios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -20,11 +27,15 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
     bio TEXT,
     senha TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
-    CONSTRAINT email_estudantil_check CHECK (email ILIKE '%@discente.ifpe.edu.br' OR email ILIKE '%@ifpe.edu.br')
+    CONSTRAINT email_estudantil_check CHECK (email ILIKE '%@discente.ifpe.edu.br' OR email ILIKE '%@ifpe.edu.br'),
+    CONSTRAINT check_cursos_ifpe_olinda CHECK (curso IN ('Artes Visuais', 'Computação Gráfica Integrado', 'Computação Gráfica Subsequente', 'Produção em Multimídia'))
 );
 
 -- Garantir coluna bio caso a tabela já tenha sido criada anteriormente
 ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE public.usuarios DROP COLUMN IF EXISTS email_verificado;
+ALTER TABLE public.usuarios DROP COLUMN IF EXISTS token_verificacao;
+ALTER TABLE public.usuarios DROP COLUMN IF EXISTS token_verificacao_expira;
 
 -- 3. Tabela de Publicações (Posts)
 CREATE TABLE IF NOT EXISTS public.posts (
@@ -101,14 +112,14 @@ VALUES
         '11111111-1111-1111-1111-111111111111', 
         'Mariana Silva', 
         'mariana.silva@discente.ifpe.edu.br', 
-        'Computação Gráfica', 
+        'Computação Gráfica Integrado', 
         '$2b$10$uXb1Ti5giaAV6KO5w4QVzOS0QxiM/XAu1dL31RtmqWUHSHv8xPDWm'
     ),
     (
         '22222222-2222-2222-2222-222222222222', 
         'Lucas Albuquerque', 
         'lucas.albuquerque@discente.ifpe.edu.br', 
-        'Técnico em Computação Gráfica', 
+        'Computação Gráfica Subsequente', 
         '$2b$10$uXb1Ti5giaAV6KO5w4QVzOS0QxiM/XAu1dL31RtmqWUHSHv8xPDWm'
     ),
     (
@@ -177,3 +188,11 @@ VALUES
         NOW() - INTERVAL '3 hours'
     )
 ON CONFLICT DO NOTHING;
+
+-- Registro inicial de migrações
+INSERT INTO public._migrations (nome) 
+VALUES 
+    ('001_schema_inicial.sql'),
+    ('002_remover_confirmacao_email.sql'),
+    ('003_atualizar_cursos_novo_padrao.sql')
+ON CONFLICT (nome) DO NOTHING;

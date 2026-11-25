@@ -72,7 +72,7 @@ async function register(req, res) {
     );
 
     return res.status(201).json({
-      message: 'Conta criada com sucesso! Bem-vindo(a) ao IFPE Olinda Conecta.',
+      message: 'Conta criada com sucesso! Bem-vindo(a) ao IFPE Chega Junto.',
       usuario: novoUsuario,
       token,
     });
@@ -212,9 +212,32 @@ async function atualizarPerfil(req, res) {
   }
 }
 
+// 5. Obter Perfil Público de Outro Estudante (por ID)
+async function obterPerfilPublico(req, res) {
+  try {
+    const { id } = req.params;
+
+    const { data: usuario, error } = await supabase
+      .from('usuarios')
+      .select('id, nome, email, curso, bio, created_at')
+      .eq('id', id)
+      .single();
+
+    if (error || !usuario) {
+      return res.status(404).json({ error: 'Estudante não encontrado no sistema.' });
+    }
+
+    return res.json({ usuario });
+  } catch (error) {
+    console.error('Erro ao buscar perfil público:', error);
+    return res.status(500).json({ error: 'Erro interno ao consultar perfil do estudante.' });
+  }
+}
+
 module.exports = {
   register,
   login,
   me,
   atualizarPerfil,
+  obterPerfilPublico,
 };

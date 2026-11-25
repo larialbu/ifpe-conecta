@@ -1,15 +1,17 @@
 {
-  "name": "ifpe-olinda-Conecta",
+  "name": "ifpe-chega-junto",
   "version": "1.0.0",
   "private": true,
-  "description": "IFPE Olinda Conecta - Monorepo Full Stack para Vercel (React + Express + Supabase)",
+  "description": "IFPE Chega Junto - Monorepo Full Stack para Vercel (React + Express + Supabase)",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "vite",
     "dev:backend": "node --watch server.local.js",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "node server.local.js"
+    "start": "node server.local.js",
+    "migrate": "node api/migrations/runner.js",
+    "migrate:status": "node api/migrations/runner.js --status"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",

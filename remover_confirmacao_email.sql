@@ -1,5 +1,5 @@
 -- ==============================================================================
--- 📌 IFPE Olinda Conecta - Migration: Remover Validação de E-mail do Banco
+-- 📌 IFPE Chega Junto - Migration: Remover Validação de E-mail do Banco
 -- ==============================================================================
 -- Como executar:
 -- 1. Acesse o painel do Supabase (https://supabase.com/dashboard)

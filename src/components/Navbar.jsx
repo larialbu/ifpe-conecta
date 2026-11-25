@@ -10,7 +10,7 @@ export function Navbar({ termoBusca, setTermoBusca, onSelectCategoria, onOpenPer
   return (
     <header style={styles.header}>
       <div style={styles.container} className="navbar-container">
-        {/* Logotipo IFPE Olinda Conecta */}
+        {/* Logotipo IFPE Chega Junto */}
         <div style={styles.brand} onClick={() => onSelectCategoria('geral')}>
           <div style={styles.logoBadge}>
             <span style={styles.logoDotRed}></span>
@@ -20,8 +20,7 @@ export function Navbar({ termoBusca, setTermoBusca, onSelectCategoria, onOpenPer
           <div>
             <div style={styles.brandTitle} className="brand-title-text">
               <span style={{ color: 'var(--color-primary)' }}>IFPE</span>
-              <span style={{ color: 'var(--color-accent)', marginLeft: '4px' }}>Olinda</span>
-              <span style={styles.brandSubtitle}>Conecta</span>
+              <span style={{ color: 'var(--color-accent)', marginLeft: '6px' }}>Chega Junto</span>
             </div>
             <div style={styles.campusTag} className="campus-tag-desktop">
               Campus Olinda • Comunidade Discente

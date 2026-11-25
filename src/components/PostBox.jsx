@@ -8,7 +8,8 @@ import {
   Rocket,
   Compass,
   MessageSquarePlus,
-  X
+  X,
+  Hash
 } from 'lucide-react';
 
 const CATEGORIAS_OPCOES = [
@@ -143,7 +144,7 @@ export function PostBox({ onPostCriado, categoriaAtiva }) {
 
           {/* Textarea de Conteúdo */}
           <textarea
-            placeholder={`Compartilhe dúvidas, oportunidades, projetos ou dicas com o campus Olinda...`}
+            placeholder="Compartilhe dúvidas, oportunidades, projetos ou dicas (use # para criar tópicos)..."
             value={conteudo}
             onChange={(e) => setConteudo(e.target.value)}
             style={styles.textarea}
@@ -155,8 +156,19 @@ export function PostBox({ onPostCriado, categoriaAtiva }) {
           {erro && <div style={styles.errorMsg}>{erro}</div>}
 
           <div style={styles.formFooter}>
-            <div style={styles.charCount}>
-              {conteudo.length} caracteres
+            <div style={styles.footerLeft}>
+              <span style={styles.charCount}>{conteudo.length} caracteres</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setConteudo((prev) => (prev ? `${prev.trimEnd()} #` : '#'));
+                }}
+                style={styles.tagBtn}
+                title="Inserir uma hashtag"
+              >
+                <Hash size={13} color="var(--color-primary)" />
+                <span>Tag #</span>
+              </button>
             </div>
             <div style={styles.actionButtons}>
               <button
@@ -385,6 +397,25 @@ const styles = {
   charCount: {
     fontSize: '0.75rem',
     color: 'var(--text-muted)',
+  },
+  footerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  tagBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '3px 8px',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px dashed var(--border-color)',
+    backgroundColor: 'var(--bg-hover)',
+    color: 'var(--text-secondary)',
+    fontSize: '0.72rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
   },
   actionButtons: {
     display: 'flex',

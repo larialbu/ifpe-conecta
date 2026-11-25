@@ -17,7 +17,7 @@ function AppContent() {
           <span style={styles.logoDotWhite}></span>
           <span style={styles.logoDotWhite}></span>
         </div>
-        <div style={styles.loadingText}>Carregando IFPE Olinda Conecta...</div>
+        <div style={styles.loadingText}>Carregando IFPE Chega Junto...</div>
       </div>
     );
   }

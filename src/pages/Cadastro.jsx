@@ -15,8 +15,9 @@ import {
 
 const CURSOS_IFPE = [
   'Artes Visuais',
-  'Computação Gráfica',
-  'Técnico em Computação Gráfica',
+  'Computação Gráfica Integrado',
+  'Computação Gráfica Subsequente',
+  'Produção em Multimídia',
 ];
 
 export function Cadastro({ onNavigateToLogin }) {

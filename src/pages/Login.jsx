@@ -52,7 +52,7 @@ export function Login({ onNavigateToCadastro }) {
           </div>
           <h1 style={styles.title}>
             <span style={{ color: 'var(--color-primary)' }}>IFPE</span>{' '}
-            <span style={{ color: 'var(--color-accent)' }}>Olinda</span> Conecta
+            <span style={{ color: 'var(--color-accent)' }}>Chega Junto</span>
           </h1>
           <p style={styles.subtitle}>
             Acesse a comunidade discente do Campus Olinda

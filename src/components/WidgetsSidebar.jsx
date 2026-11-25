@@ -3,10 +3,8 @@ import {
   ExternalLink,
   Flame,
   ShieldCheck,
-  Calendar,
-  BookOpen,
-  Award,
-  Globe
+  Globe,
+  Hash
 } from 'lucide-react';
 
 const LINKS_IFPE = [
@@ -17,34 +15,14 @@ const LINKS_IFPE = [
     icon: Globe,
   },
   {
-    nome: 'Biblioteca Virtual Pearson',
-    descricao: 'Acesso a livros técnicos e bibliografias',
-    url: 'https://www.ifpe.edu.br/olinda/',
-    icon: BookOpen,
-  },
-  {
-    nome: 'Calendário Acadêmico 2026',
-    descricao: 'Datas de matrículas, provas e recessos',
-    url: 'https://www.ifpe.edu.br/olinda/',
-    icon: Calendar,
-  },
-  {
-    nome: 'Editais de Assistência e Extensão',
-    descricao: 'Bolsas permanência, pesquisa e PIBIF',
-    url: 'https://portal.ifpe.edu.br/',
-    icon: Award,
+    nome: 'Site do IFPE',
+    descricao: 'Portal institucional e notícias do campus',
+    url: 'https://portal.ifpe.edu.br/olinda/',
+    icon: Globe,
   },
 ];
 
-const TOPICOS_DESTAQUE = [
-  { tag: '#HackathonRecife', count: 18 },
-  { tag: '#MonitoriaAlgoritmos', count: 14 },
-  { tag: '#InovacaoIFPEOlinda', count: 9 },
-  { tag: '#EstagioPortoDigital', count: 8 },
-  { tag: '#PIBITI2026', count: 6 },
-];
-
-export function WidgetsSidebar({ onSelectTag }) {
+export function WidgetsSidebar({ onSelectTag, topicos = [], tagAtiva = '' }) {
   return (
     <aside style={styles.container}>
       {/* Widget 1: Links Rápidos do IFPE */}
@@ -78,23 +56,57 @@ export function WidgetsSidebar({ onSelectTag }) {
         </div>
       </div>
 
-      {/* Widget 2: Tópicos da Semana */}
+      {/* Widget 2: Tópicos da Semana / Hashtags Dinâmicas */}
       <div style={styles.card}>
         <div style={styles.cardHeader}>
           <Flame size={16} color="var(--color-accent)" />
           <h4 style={styles.cardTitle}>Em Alta no Campus</h4>
         </div>
         <div style={styles.tagsList}>
-          {TOPICOS_DESTAQUE.map((item, index) => (
-            <div
-              key={index}
-              style={styles.tagItem}
-              onClick={() => onSelectTag && onSelectTag(item.tag.replace('#', ''))}
-            >
-              <span style={styles.tagName}>{item.tag}</span>
-              <span style={styles.tagCount}>{item.count} posts</span>
+          {topicos && topicos.length > 0 ? (
+            topicos.map((item, index) => {
+              const isSelected =
+                tagAtiva &&
+                (tagAtiva === item.tag || tagAtiva === item.tag.replace('#', ''));
+              return (
+                <div
+                  key={index}
+                  style={{
+                    ...styles.tagItem,
+                    ...(isSelected ? styles.tagItemActive : {}),
+                  }}
+                  onClick={() => onSelectTag && onSelectTag(item.tag)}
+                  title={
+                    isSelected
+                      ? `Clique para sair da hashtag ${item.tag}`
+                      : `Filtrar publicações com ${item.tag}`
+                  }
+                >
+                  <span style={styles.tagName}>{item.tag}</span>
+                  <div style={styles.tagCountGroup}>
+                    <span style={styles.tagCount}>
+                      {item.count} {item.count === 1 ? 'post' : 'posts'}
+                    </span>
+                    {isSelected && (
+                      <span style={styles.tagRemoveBtn} title="Remover filtro">
+                        ✕
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div style={styles.emptyTagsBox}>
+              <div style={styles.emptyTagsIcon}>
+                <Hash size={16} color="var(--text-muted)" />
+              </div>
+              <p style={styles.emptyTagsTitle}>Nenhuma # em alta ainda</p>
+              <span style={styles.emptyTagsSub}>
+                Inclua hashtags (ex: #Monitoria, #Projeto) nas publicações para destacá-las aqui!
+              </span>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -210,6 +222,58 @@ const styles = {
   tagCount: {
     fontSize: '0.72rem',
     color: 'var(--text-muted)',
+  },
+  tagItemActive: {
+    backgroundColor: 'var(--color-primary-light)',
+    border: '1px solid var(--color-primary)',
+  },
+  tagCountGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  tagRemoveBtn: {
+    fontSize: '0.68rem',
+    fontWeight: '800',
+    color: 'var(--color-primary)',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: '50%',
+    width: '16px',
+    height: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTagsBox: {
+    padding: '12px 10px',
+    borderRadius: 'var(--radius-sm)',
+    backgroundColor: 'var(--bg-card-subtle)',
+    border: '1px dashed var(--border-color)',
+    textAlign: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  emptyTagsIcon: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--bg-hover)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTagsTitle: {
+    fontSize: '0.78rem',
+    fontWeight: '700',
+    color: 'var(--text-main)',
+    margin: 0,
+  },
+  emptyTagsSub: {
+    fontSize: '0.7rem',
+    color: 'var(--text-muted)',
+    lineHeight: '1.4',
   },
   guidelineText: {
     fontSize: '0.75rem',

@@ -40,7 +40,39 @@ function formatarTempo(dataString) {
   return postDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
-export function PostCard({ post, onLike, onAddComment }) {
+function renderConteudoComHashtags(texto, onSelectTag) {
+  if (!texto) return '';
+  const regex = /(#[a-zA-Z0-9_\u00C0-\u017F]+)/g;
+  const partes = texto.split(regex);
+  return partes.map((parte, index) => {
+    if (regex.test(parte)) {
+      return (
+        <span
+          key={index}
+          onClick={(e) => {
+            if (onSelectTag) {
+              e.stopPropagation();
+              onSelectTag(parte);
+            }
+          }}
+          style={{
+            color: 'var(--color-primary)',
+            fontWeight: '600',
+            cursor: onSelectTag ? 'pointer' : 'default',
+            margin: '0 1px',
+            textDecoration: 'none',
+          }}
+          title={onSelectTag ? `Filtrar publicações com ${parte}` : undefined}
+        >
+          {parte}
+        </span>
+      );
+    }
+    return parte;
+  });
+}
+
+export function PostCard({ post, onLike, onAddComment, onSelectTag, onVerPerfil }) {
   const { user } = useAuth();
   const [comentariosAbertos, setComentariosAbertos] = useState(false);
   const [novoComentario, setNovoComentario] = useState('');
@@ -95,7 +127,11 @@ export function PostCard({ post, onLike, onAddComment }) {
     <article style={styles.card} className="animate-fade-in">
       {/* Cabeçalho do Card */}
       <div style={styles.header}>
-        <div style={styles.authorWrapper}>
+        <div
+          style={styles.authorWrapper}
+          onClick={() => onVerPerfil && onVerPerfil(post.autor)}
+          title={`Ver perfil de ${autorNome}`}
+        >
           <div style={styles.avatar}>{iniciais}</div>
           <div style={styles.authorDetails}>
             <div style={styles.authorTopRow}>
@@ -126,7 +162,9 @@ export function PostCard({ post, onLike, onAddComment }) {
       {/* Conteúdo */}
       <div style={styles.body}>
         {post.titulo && <h3 style={styles.title}>{post.titulo}</h3>}
-        <p style={styles.content}>{post.conteudo}</p>
+        <p style={styles.content}>
+          {renderConteudoComHashtags(post.conteudo, onSelectTag)}
+        </p>
       </div>
 
       {/* Ações / Barra de Interação */}
@@ -200,12 +238,22 @@ export function PostCard({ post, onLike, onAddComment }) {
                 const autorComCurso = com.autor?.curso || 'IFPE Olinda';
                 return (
                   <div key={com.id} style={styles.commentItem}>
-                    <div style={styles.commentItemAvatar}>
+                    <div
+                      style={styles.commentItemAvatar}
+                      onClick={() => onVerPerfil && onVerPerfil(com.autor)}
+                      title={`Ver perfil de ${autorComNome}`}
+                    >
                       {autorComNome.charAt(0).toUpperCase()}
                     </div>
                     <div style={styles.commentBubble}>
                       <div style={styles.commentBubbleHeader}>
-                        <span style={styles.commentAuthor}>{autorComNome}</span>
+                        <span
+                          style={styles.commentAuthor}
+                          onClick={() => onVerPerfil && onVerPerfil(com.autor)}
+                          title={`Ver perfil de ${autorComNome}`}
+                        >
+                          {autorComNome}
+                        </span>
                         <span style={styles.commentTime}>{formatarTempo(com.created_at)}</span>
                       </div>
                       <div style={styles.commentAuthorCourse}>{autorComCurso}</div>
@@ -250,6 +298,8 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
+    cursor: 'pointer',
+    transition: 'opacity 0.15s ease',
   },
   avatar: {
     width: '42px',
@@ -406,18 +456,20 @@ const styles = {
     alignItems: 'flex-start',
   },
   commentItemAvatar: {
-    width: '28px',
-    height: '28px',
+    width: '30px',
+    height: '30px',
     borderRadius: '50%',
-    backgroundColor: 'var(--bg-hover)',
-    color: 'var(--text-main)',
+    backgroundColor: 'var(--color-primary-light)',
+    color: 'var(--color-primary)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontWeight: '700',
-    fontSize: '0.75rem',
+    fontSize: '0.8rem',
     flexShrink: 0,
     marginTop: '2px',
+    cursor: 'pointer',
+    transition: 'transform 0.15s ease',
   },
   commentBubble: {
     backgroundColor: 'var(--bg-card-subtle)',
@@ -435,6 +487,8 @@ const styles = {
     fontSize: '0.8rem',
     fontWeight: '700',
     color: 'var(--text-main)',
+    cursor: 'pointer',
+    transition: 'color 0.15s ease',
   },
   commentTime: {
     fontSize: '0.7rem',
