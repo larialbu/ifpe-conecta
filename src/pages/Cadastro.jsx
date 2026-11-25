@@ -64,8 +64,12 @@ export function Cadastro({ onNavigateToLogin }) {
       setCarregando(true);
       setErro('');
       const res = await registro(nome, email, curso, senha);
-      if (res.aguardandoConfirmacao) {
-        setRegistroConcluido({ email: email.trim().toLowerCase(), nome: nome.trim() });
+      if (res?.aguardandoConfirmacao || res?.message || !res?.token) {
+        setRegistroConcluido({
+          email: res?.email || email.trim().toLowerCase(),
+          nome: nome.trim(),
+          message: res?.message,
+        });
       }
     } catch (err) {
       setErro(err.message || 'Falha ao realizar cadastro.');
@@ -136,6 +140,12 @@ export function Cadastro({ onNavigateToLogin }) {
               </span>
             </div>
 
+            {registroConcluido.message && (
+              <div style={styles.resendMessage}>
+                <span>💡 {registroConcluido.message}</span>
+              </div>
+            )}
+
             {mensagemReenvio && (
               <div style={styles.resendMessage}>
                 <span>{mensagemReenvio}</span>
@@ -205,8 +215,30 @@ export function Cadastro({ onNavigateToLogin }) {
 
         {erro && (
           <div style={styles.alertError}>
-            <AlertCircle size={16} />
-            <span>{erro}</span>
+            <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span>{erro}</span>
+              {(erro.toLowerCase().includes('login') || erro.toLowerCase().includes('já existe')) && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={onNavigateToLogin}
+                    style={{
+                      padding: '5px 10px',
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
+                      color: '#ffffff',
+                      backgroundColor: '#dc2626',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Ir para Tela de Login →
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
