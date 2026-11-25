@@ -290,6 +290,131 @@ async function removerUsuario(req, res) {
 }
 
 /**
+ * Atualiza todos os campos de um usuário cadastrado
+ * Permite ao admin editar: nome, email, curso, bio, tipo, email_verificado e senha (opcional)
+ */
+async function atualizarUsuario(req, res) {
+  try {
+    const { id } = req.params;
+    const { nome, email, curso, bio, tipo, email_verificado, senha } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'ID do usuário não informado.' });
+    }
+
+    if (!supabase) {
+      return res.status(500).json({ error: 'Cliente Supabase não configurado.' });
+    }
+
+    // 1. Verificar se o usuário existe
+    const { data: usuarioExistente, error: errBusca } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (errBusca) {
+      throw errBusca;
+    }
+
+    if (!usuarioExistente) {
+      return res.status(404).json({ error: 'Usuário não encontrado.' });
+    }
+
+    // 2. Montar objeto com campos a serem atualizados
+    const camposAtualizacao = {};
+
+    if (nome !== undefined) {
+      if (!nome.trim()) {
+        return res.status(400).json({ error: 'O nome não pode ficar em branco.' });
+      }
+      camposAtualizacao.nome = nome.trim();
+    }
+
+    if (email !== undefined) {
+      const emailTratado = email.trim().toLowerCase();
+      if (!emailTratado.endsWith('@discente.ifpe.edu.br') && !emailTratado.endsWith('@ifpe.edu.br')) {
+        return res.status(400).json({
+          error: 'O e-mail institucional precisa pertencer ao domínio @discente.ifpe.edu.br ou @ifpe.edu.br.',
+        });
+      }
+
+      // Se o e-mail foi alterado, verificar se já não pertence a outro usuário
+      if (emailTratado !== usuarioExistente.email) {
+        const { data: outroUsuario, error: errEmail } = await supabase
+          .from('usuarios')
+          .select('id')
+          .eq('email', emailTratado)
+          .neq('id', id)
+          .maybeSingle();
+
+        if (errEmail) throw errEmail;
+        if (outroUsuario) {
+          return res.status(409).json({ error: 'Este e-mail já está sendo utilizado por outro usuário.' });
+        }
+      }
+      camposAtualizacao.email = emailTratado;
+    }
+
+    if (curso !== undefined) {
+      camposAtualizacao.curso = curso.trim();
+    }
+
+    if (bio !== undefined) {
+      camposAtualizacao.bio = bio ? bio.trim() : '';
+    }
+
+    if (tipo !== undefined) {
+      if (tipo !== 'usuario' && tipo !== 'admin') {
+        return res.status(400).json({ error: 'Tipo inválido. Deve ser "usuario" ou "admin".' });
+      }
+      camposAtualizacao.tipo = tipo;
+    }
+
+    if (email_verificado !== undefined) {
+      const verificadoBool = Boolean(email_verificado);
+      camposAtualizacao.email_verificado = verificadoBool;
+      if (verificadoBool) {
+        camposAtualizacao.token_verificacao = null;
+        camposAtualizacao.token_verificacao_expira = null;
+      }
+    }
+
+    if (senha && senha.trim()) {
+      if (senha.trim().length < 6) {
+        return res.status(400).json({ error: 'A nova senha deve ter no mínimo 6 caracteres.' });
+      }
+      const senhaHash = await bcrypt.hash(senha.trim(), 10);
+      camposAtualizacao.senha = senhaHash;
+    }
+
+    // 3. Atualizar no banco Supabase
+    const { data: usuarioAtualizado, error: errUpdate } = await supabase
+      .from('usuarios')
+      .update(camposAtualizacao)
+      .eq('id', id)
+      .select('id, nome, email, curso, bio, tipo, email_verificado, created_at')
+      .single();
+
+    if (errUpdate) {
+      console.error('Erro ao atualizar usuário pelo admin:', errUpdate);
+      throw errUpdate;
+    }
+
+    console.log(`[ADMIN] Usuário atualizado com sucesso: ${usuarioAtualizado.nome} (${usuarioAtualizado.email})`);
+
+    return res.json({
+      success: true,
+      message: `Dados do usuário "${usuarioAtualizado.nome}" atualizados com sucesso.`,
+      usuario: usuarioAtualizado,
+    });
+  } catch (err) {
+    console.error('Erro ao atualizar usuário:', err);
+    return res.status(500).json({ error: err.message || 'Erro ao atualizar dados do usuário.' });
+  }
+}
+
+/**
  * Disparo em massa de e-mails para estudantes
  */
 async function dispararEmail(req, res) {
@@ -357,6 +482,7 @@ module.exports = {
   adminLogin,
   getStats,
   listarUsuarios,
+  atualizarUsuario,
   removerUsuario,
   dispararEmail,
 };

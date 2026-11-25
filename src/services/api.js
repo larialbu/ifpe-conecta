@@ -202,6 +202,17 @@ export const api = {
     return data.usuarios || [];
   },
 
+  async adminAtualizarUsuario(usuarioId, dados) {
+    const res = await fetch(`${API_BASE_URL}/admin/usuarios/${usuarioId}`, {
+      method: 'PUT',
+      headers: getAdminAuthHeaders(),
+      body: JSON.stringify(dados),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao atualizar dados do usuário.');
+    return data;
+  },
+
   async adminRemoverUsuario(usuarioId) {
     const res = await fetch(`${API_BASE_URL}/admin/usuarios/${usuarioId}`, {
       method: 'DELETE',

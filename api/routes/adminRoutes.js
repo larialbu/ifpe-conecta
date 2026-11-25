@@ -9,6 +9,7 @@ router.post('/login', adminController.adminLogin);
 // Rotas protegidas por autenticação de administrador
 router.get('/stats', adminMiddleware, adminController.getStats);
 router.get('/usuarios', adminMiddleware, adminController.listarUsuarios);
+router.put('/usuarios/:id', adminMiddleware, adminController.atualizarUsuario);
 router.delete('/usuarios/:id', adminMiddleware, adminController.removerUsuario);
 router.post('/disparar-email', adminMiddleware, adminController.dispararEmail);
 

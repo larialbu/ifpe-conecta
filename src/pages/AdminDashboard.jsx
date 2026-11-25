@@ -20,6 +20,10 @@ import {
   Loader2,
   RefreshCw,
   Info,
+  Pencil,
+  CheckCircle2,
+  XCircle,
+  X,
 } from 'lucide-react';
 
 const CURSOS_OFICIAIS = [
@@ -47,6 +51,21 @@ export function AdminDashboard({ onNavigateToFeed, onNavigateToLogin }) {
   const [usuarioParaExcluir, setUsuarioParaExcluir] = useState(null);
   const [excluindo, setExcluindo] = useState(false);
   const [sucessoExclusao, setSucessoExclusao] = useState('');
+
+  // Modal de edição de todos os campos do usuário
+  const [usuarioParaEditar, setUsuarioParaEditar] = useState(null);
+  const [editando, setEditando] = useState(false);
+  const [sucessoEdicao, setSucessoEdicao] = useState('');
+  const [erroEdicao, setErroEdicao] = useState('');
+  const [formEdicao, setFormEdicao] = useState({
+    nome: '',
+    email: '',
+    curso: CURSOS_OFICIAIS[0],
+    bio: '',
+    tipo: 'usuario',
+    email_verificado: true,
+    senha: '',
+  });
 
   // Formulário de disparo de e-mail
   const [assuntoEmail, setAssuntoEmail] = useState('');
@@ -106,6 +125,68 @@ export function AdminDashboard({ onNavigateToFeed, onNavigateToLogin }) {
       alert(`Erro ao excluir: ${err.message}`);
     } finally {
       setExcluindo(false);
+    }
+  }
+
+  function handleAbrirEdicao(u) {
+    setUsuarioParaEditar(u);
+    setFormEdicao({
+      nome: u.nome || '',
+      email: u.email || '',
+      curso: u.curso || CURSOS_OFICIAIS[0],
+      bio: u.bio || '',
+      tipo: u.tipo || 'usuario',
+      email_verificado: u.email_verificado !== false,
+      senha: '',
+    });
+    setErroEdicao('');
+  }
+
+  async function handleSalvarEdicao(e) {
+    e.preventDefault();
+    if (!usuarioParaEditar) return;
+
+    if (!formEdicao.nome.trim()) {
+      setErroEdicao('O nome do usuário é obrigatório.');
+      return;
+    }
+
+    if (!formEdicao.email.trim()) {
+      setErroEdicao('O e-mail institucional é obrigatório.');
+      return;
+    }
+
+    try {
+      setEditando(true);
+      setErroEdicao('');
+
+      const payload = {
+        nome: formEdicao.nome.trim(),
+        email: formEdicao.email.trim(),
+        curso: formEdicao.curso,
+        bio: formEdicao.bio,
+        tipo: formEdicao.tipo,
+        email_verificado: formEdicao.email_verificado,
+      };
+
+      if (formEdicao.senha && formEdicao.senha.trim()) {
+        if (formEdicao.senha.trim().length < 6) {
+          setErroEdicao('A nova senha deve ter no mínimo 6 caracteres.');
+          setEditando(false);
+          return;
+        }
+        payload.senha = formEdicao.senha.trim();
+      }
+
+      await api.adminAtualizarUsuario(usuarioParaEditar.id, payload);
+      setSucessoEdicao(`Dados de "${formEdicao.nome}" atualizados com sucesso!`);
+      setUsuarioParaEditar(null);
+      await carregarDados();
+      setTimeout(() => setSucessoEdicao(''), 5000);
+    } catch (err) {
+      setErroEdicao(err.message || 'Erro ao atualizar dados do usuário.');
+    } finally {
+      setEditando(false);
     }
   }
 
@@ -242,6 +323,13 @@ export function AdminDashboard({ onNavigateToFeed, onNavigateToLogin }) {
           <div style={styles.successAlert}>
             <CheckCircle size={20} color="#16a34a" />
             <span>{sucessoExclusao}</span>
+          </div>
+        )}
+
+        {sucessoEdicao && (
+          <div style={styles.successAlert}>
+            <CheckCircle size={20} color="#16a34a" />
+            <span>{sucessoEdicao}</span>
           </div>
         )}
 
@@ -437,6 +525,7 @@ export function AdminDashboard({ onNavigateToFeed, onNavigateToLogin }) {
                           <th style={styles.th}>E-mail Institucional</th>
                           <th style={styles.th}>Curso</th>
                           <th style={styles.th}>Tipo de Acesso</th>
+                          <th style={styles.th}>Status Conta</th>
                           <th style={styles.th}>Cadastrado em</th>
                           <th style={{ ...styles.th, textAlign: 'right' }}>Ações</th>
                         </tr>
@@ -444,7 +533,7 @@ export function AdminDashboard({ onNavigateToFeed, onNavigateToLogin }) {
                       <tbody>
                         {usuariosFiltrados.length === 0 ? (
                           <tr>
-                            <td colSpan="6" style={styles.emptyTd}>
+                            <td colSpan="7" style={styles.emptyTd}>
                               Nenhum estudante encontrado para os filtros informados.
                             </td>
                           </tr>
@@ -494,17 +583,40 @@ export function AdminDashboard({ onNavigateToFeed, onNavigateToLogin }) {
                                   )}
                                 </td>
                                 <td style={styles.td}>
+                                  {u.email_verificado !== false ? (
+                                    <span style={styles.badgeVerificado} title="E-mail verificado e conta liberada">
+                                      <CheckCircle2 size={13} style={{ marginRight: '4px' }} />
+                                      Liberado
+                                    </span>
+                                  ) : (
+                                    <span style={styles.badgePendente} title="Aguardando confirmação do e-mail institucional">
+                                      <XCircle size={13} style={{ marginRight: '4px' }} />
+                                      Pendente
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={styles.td}>
                                   <span style={styles.dateText}>{dataFormatada}</span>
                                 </td>
                                 <td style={{ ...styles.td, textAlign: 'right' }}>
-                                  <button
-                                    onClick={() => setUsuarioParaExcluir(u)}
-                                    style={styles.deleteBtn}
-                                    title="Remover usuário do sistema"
-                                  >
-                                    <Trash2 size={16} style={{ marginRight: '6px' }} />
-                                    Remover
-                                  </button>
+                                  <div style={{ display: 'inline-flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                    <button
+                                      onClick={() => handleAbrirEdicao(u)}
+                                      style={styles.editBtn}
+                                      title="Editar todos os campos deste usuário"
+                                    >
+                                      <Pencil size={15} style={{ marginRight: '5px' }} />
+                                      Editar
+                                    </button>
+                                    <button
+                                      onClick={() => setUsuarioParaExcluir(u)}
+                                      style={styles.deleteBtn}
+                                      title="Remover usuário do sistema"
+                                    >
+                                      <Trash2 size={15} style={{ marginRight: '5px' }} />
+                                      Remover
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -717,6 +829,172 @@ export function AdminDashboard({ onNavigateToFeed, onNavigateToLogin }) {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edição de Todos os Campos do Usuário */}
+      {usuarioParaEditar && (
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modalCard, maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ ...styles.modalIconBox, backgroundColor: 'rgba(59, 130, 246, 0.12)' }}>
+                  <Pencil size={20} color="#2563eb" />
+                </div>
+                <div>
+                  <h3 style={styles.modalTitle}>Editar Usuário</h3>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #6b7280)' }}>
+                    Altere qualquer dado cadastral do estudante ou admin
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUsuarioParaEditar(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted, #6b7280)',
+                  padding: '4px',
+                }}
+                title="Fechar"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {erroEdicao && (
+              <div style={{ ...styles.errorAlert, marginBottom: '16px', padding: '10px 14px' }}>
+                <AlertTriangle size={18} color="#dc2626" />
+                <span>{erroEdicao}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSalvarEdicao} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Nome Completo */}
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Nome Completo *</label>
+                <input
+                  type="text"
+                  value={formEdicao.nome}
+                  onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })}
+                  style={styles.inputField}
+                  required
+                />
+              </div>
+
+              {/* E-mail Institucional */}
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>E-mail Institucional (@discente.ifpe.edu.br ou @ifpe.edu.br) *</label>
+                <input
+                  type="email"
+                  value={formEdicao.email}
+                  onChange={(e) => setFormEdicao({ ...formEdicao, email: e.target.value })}
+                  style={styles.inputField}
+                  required
+                />
+              </div>
+
+              {/* Curso */}
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Curso no IFPE Campus Olinda *</label>
+                <select
+                  value={formEdicao.curso}
+                  onChange={(e) => setFormEdicao({ ...formEdicao, curso: e.target.value })}
+                  style={styles.selectInputFull}
+                >
+                  {CURSOS_OFICIAIS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Grid 2 colunas: Tipo de Acesso e Status da Conta */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Tipo de Permissão</label>
+                  <select
+                    value={formEdicao.tipo}
+                    onChange={(e) => setFormEdicao({ ...formEdicao, tipo: e.target.value })}
+                    style={styles.selectInputFull}
+                  >
+                    <option value="usuario">Estudante (Principal)</option>
+                    <option value="admin">Administrador (2 Sistemas 🛡️)</option>
+                  </select>
+                </div>
+
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Status do Acesso</label>
+                  <select
+                    value={formEdicao.email_verificado ? 'true' : 'false'}
+                    onChange={(e) => setFormEdicao({ ...formEdicao, email_verificado: e.target.value === 'true' })}
+                    style={styles.selectInputFull}
+                  >
+                    <option value="true">Liberado / Ativo ✅</option>
+                    <option value="false">Pendente de Confirmação ⏳</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Biografia */}
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Biografia / Apresentação</label>
+                <textarea
+                  rows={2}
+                  value={formEdicao.bio}
+                  onChange={(e) => setFormEdicao({ ...formEdicao, bio: e.target.value })}
+                  placeholder="Descrição ou biografia acadêmica..."
+                  style={styles.textareaField}
+                />
+              </div>
+
+              {/* Redefinir Senha */}
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>
+                  Redefinir Senha <span style={{ fontWeight: 'normal', color: 'var(--text-muted, #6b7280)', fontSize: '0.8rem' }}>(deixe vazio para não alterar)</span>
+                </label>
+                <input
+                  type="password"
+                  value={formEdicao.senha}
+                  onChange={(e) => setFormEdicao({ ...formEdicao, senha: e.target.value })}
+                  placeholder="Nova senha com no mínimo 6 caracteres"
+                  style={styles.inputField}
+                />
+              </div>
+
+              <div style={{ ...styles.modalActions, marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setUsuarioParaEditar(null)}
+                  disabled={editando}
+                  style={styles.cancelBtn}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={editando}
+                  style={{
+                    ...styles.sendBtn,
+                    padding: '9px 18px',
+                    fontSize: '0.88rem',
+                  }}
+                >
+                  {editando ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" style={{ marginRight: '6px' }} />
+                      Salvando...
+                    </>
+                  ) : (
+                    'Salvar Alterações'
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -1116,6 +1394,41 @@ const styles = {
   dateText: {
     color: 'var(--text-muted, #6b7280)',
     fontSize: '0.82rem',
+  },
+  badgeVerificado: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '0.74rem',
+    fontWeight: '700',
+    backgroundColor: 'rgba(22, 163, 74, 0.1)',
+    color: '#166534',
+    border: '1px solid rgba(22, 163, 74, 0.25)',
+  },
+  badgePendente: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    fontSize: '0.74rem',
+    fontWeight: '700',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    color: '#b45309',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+  },
+  editBtn: {
+    padding: '6px 12px',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    border: '1px solid rgba(59, 130, 246, 0.25)',
+    borderRadius: '6px',
+    color: '#2563eb',
+    fontSize: '0.8rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    transition: 'background-color 0.15s ease',
   },
   deleteBtn: {
     padding: '6px 12px',
