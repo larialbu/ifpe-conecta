@@ -173,27 +173,28 @@ async function executarMigrations(options = { silencioso: false }) {
         alteracoesRealizadas += antigos2.length;
       }
 
-      // C) Garantir que os usuários de demonstração estejam atualizados
+      // C) Garantir que os usuários de demonstração estejam atualizados com tipo = 'usuario'
       const hashSenhaPadrao = await bcrypt.hash('123456', 10);
 
       for (const demo of USUARIOS_DEMO) {
         const { data: userExiste } = await supabase
           .from('usuarios')
-          .select('id, email, curso, bio')
+          .select('id, email, curso, bio, tipo')
           .eq('email', demo.email)
           .single();
 
         if (userExiste) {
-          // Atualiza curso e bio se divergirem
-          if (userExiste.curso !== demo.curso || (!userExiste.bio && demo.bio)) {
+          // Atualiza curso, bio e tipo se divergirem
+          if (userExiste.curso !== demo.curso || (!userExiste.bio && demo.bio) || userExiste.tipo !== 'usuario') {
             await supabase
               .from('usuarios')
               .update({
                 curso: demo.curso,
                 bio: userExiste.bio || demo.bio,
+                tipo: 'usuario',
               })
               .eq('email', demo.email);
-            log(`  ✅ Conta de demonstração atualizada: ${demo.nome} (${demo.curso})`);
+            log(`  ✅ Conta de demonstração atualizada: ${demo.nome} (${demo.curso}) [tipo: usuario]`);
             alteracoesRealizadas++;
           }
         } else {
@@ -205,12 +206,48 @@ async function executarMigrations(options = { silencioso: false }) {
               email: demo.email,
               curso: demo.curso,
               bio: demo.bio,
+              tipo: 'usuario',
               senha: hashSenhaPadrao,
             },
           ]);
-          log(`  ✨ Conta de demonstração criada: ${demo.nome} (${demo.curso})`);
+          log(`  ✨ Conta de demonstração criada: ${demo.nome} (${demo.curso}) [tipo: usuario]`);
           alteracoesRealizadas++;
         }
+      }
+
+      // D) Garantir conta de administrador no banco (tipo = 'admin')
+      const adminEmail = (process.env.ADMIN_EMAIL || 'admin@ifpe.edu.br').trim().toLowerCase();
+      const adminSenha = process.env.ADMIN_PASSWORD || 'admin123';
+      const hashSenhaAdmin = await bcrypt.hash(adminSenha, 10);
+
+      const { data: adminExiste } = await supabase
+        .from('usuarios')
+        .select('id, email, tipo')
+        .eq('email', adminEmail)
+        .maybeSingle();
+
+      if (adminExiste) {
+        if (adminExiste.tipo !== 'admin') {
+          await supabase
+            .from('usuarios')
+            .update({ tipo: 'admin' })
+            .eq('email', adminEmail);
+          log(`  🛡️ Permissão de Administrador concedida no banco para: ${adminEmail}`);
+          alteracoesRealizadas++;
+        }
+      } else {
+        await supabase.from('usuarios').insert([
+          {
+            nome: 'Administrador IFPE',
+            email: adminEmail,
+            curso: 'Produção em Multimídia',
+            bio: 'Coordenação e Administração Oficial da plataforma IFPE Chega Junto.',
+            tipo: 'admin',
+            senha: hashSenhaAdmin,
+          },
+        ]);
+        log(`  🛡️ Conta de Administrador oficial criada no banco: ${adminEmail} (tipo: admin)`);
+        alteracoesRealizadas++;
       }
 
       // Atualiza cache local

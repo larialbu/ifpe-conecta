@@ -45,7 +45,7 @@ async function register(req, res) {
       });
     }
 
-    // 1.2 Inserir novo usuário diretamente no Supabase como ativo
+    // 1.2 Inserir novo usuário diretamente no Supabase como ativo (tipo: 'usuario')
     const { data: novoUsuario, error: insertError } = await supabase
       .from('usuarios')
       .insert([
@@ -54,9 +54,10 @@ async function register(req, res) {
           email: emailTratado,
           curso: curso.trim(),
           senha: senhaHash,
+          tipo: 'usuario',
         },
       ])
-      .select('id, nome, email, curso, created_at')
+      .select('id, nome, email, curso, tipo, created_at')
       .single();
 
     if (insertError) {
@@ -66,7 +67,14 @@ async function register(req, res) {
 
     // 1.3 Gerar token de autenticação imediato para entrar direto
     const token = jwt.sign(
-      { id: novoUsuario.id, nome: novoUsuario.nome, email: novoUsuario.email, curso: novoUsuario.curso },
+      {
+        id: novoUsuario.id,
+        nome: novoUsuario.nome,
+        email: novoUsuario.email,
+        curso: novoUsuario.curso,
+        tipo: 'usuario',
+        role: 'user',
+      },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -82,7 +90,7 @@ async function register(req, res) {
   }
 }
 
-// 2. Login Direto (sem bloqueio de confirmação de e-mail)
+// 2. Login Direto (permite login tanto de usuário normal quanto de admin no sistema principal)
 async function login(req, res) {
   try {
     const { email, senha } = req.body;
@@ -92,24 +100,54 @@ async function login(req, res) {
     }
 
     const emailTratado = email.trim().toLowerCase();
+    const adminEmailEnv = (process.env.ADMIN_EMAIL || 'admin@ifpe.edu.br').trim().toLowerCase();
+    const adminSenhaEnv = process.env.ADMIN_PASSWORD || 'admin123';
 
-    const { data: usuario, error } = await supabase
-      .from('usuarios')
-      .select('*')
-      .eq('email', emailTratado)
-      .maybeSingle();
+    let usuario = null;
 
-    if (error || !usuario) {
+    if (supabase) {
+      const { data: usuarioDb, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('email', emailTratado)
+        .maybeSingle();
+
+      if (usuarioDb) {
+        const senhaValida = await bcrypt.compare(senha, usuarioDb.senha);
+        if (senhaValida) {
+          usuario = usuarioDb;
+        }
+      }
+    }
+
+    // Fallback: Se o admin configurado no .env fizer login no sistema principal
+    if (!usuario && emailTratado === adminEmailEnv && senha === adminSenhaEnv) {
+      usuario = {
+        id: '00000000-0000-0000-0000-000000000001',
+        nome: 'Administrador IFPE',
+        email: adminEmailEnv,
+        curso: 'Produção em Multimídia',
+        bio: 'Coordenação e Administração Geral',
+        tipo: 'admin',
+        created_at: new Date().toISOString(),
+      };
+    }
+
+    if (!usuario) {
       return res.status(401).json({ error: 'E-mail institucional ou senha incorretos.' });
     }
 
-    const senhaValida = await bcrypt.compare(senha, usuario.senha);
-    if (!senhaValida) {
-      return res.status(401).json({ error: 'E-mail institucional ou senha incorretos.' });
-    }
+    const tipoUsuario = usuario.tipo || 'usuario';
 
     const token = jwt.sign(
-      { id: usuario.id, nome: usuario.nome, email: usuario.email, curso: usuario.curso },
+      {
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+        curso: usuario.curso,
+        tipo: tipoUsuario,
+        role: tipoUsuario === 'admin' ? 'admin' : 'user',
+      },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -122,6 +160,7 @@ async function login(req, res) {
         email: usuario.email,
         curso: usuario.curso,
         bio: usuario.bio,
+        tipo: tipoUsuario,
         created_at: usuario.created_at,
       },
       token,

@@ -11,6 +11,18 @@ function getAuthHeaders() {
   return headers;
 }
 
+function getAdminAuthHeaders() {
+  // Dá preferência ao token administrativo explícito, ou usa o token discente se o usuário logado for admin
+  const token = localStorage.getItem('ifpe_admin_token') || localStorage.getItem('ifpe_Conecta_token');
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 export const api = {
   // Autenticação
   async login(email, senha) {
@@ -122,5 +134,63 @@ export const api = {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao carregar comentários.');
     return data.comentarios || [];
+  },
+
+  // Área Administrativa
+  async adminLogin(email, senha) {
+    const res = await fetch(`${API_BASE_URL}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, senha }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Falha no login de administrador.');
+    if (data.token) {
+      localStorage.setItem('ifpe_admin_token', data.token);
+    }
+    return data;
+  },
+
+  adminLogout() {
+    localStorage.removeItem('ifpe_admin_token');
+  },
+
+  async adminGetStats() {
+    const res = await fetch(`${API_BASE_URL}/admin/stats`, {
+      headers: getAdminAuthHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao obter estatísticas.');
+    return data;
+  },
+
+  async adminListarUsuarios() {
+    const res = await fetch(`${API_BASE_URL}/admin/usuarios`, {
+      headers: getAdminAuthHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao listar usuários.');
+    return data.usuarios || [];
+  },
+
+  async adminRemoverUsuario(usuarioId) {
+    const res = await fetch(`${API_BASE_URL}/admin/usuarios/${usuarioId}`, {
+      method: 'DELETE',
+      headers: getAdminAuthHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao remover usuário.');
+    return data;
+  },
+
+  async adminDispararEmail({ assunto, mensagem, filtroCurso, destinatariosIds }) {
+    const res = await fetch(`${API_BASE_URL}/admin/disparar-email`, {
+      method: 'POST',
+      headers: getAdminAuthHeaders(),
+      body: JSON.stringify({ assunto, mensagem, filtroCurso, destinatariosIds }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao realizar disparo de e-mails.');
+    return data;
   },
 };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Search, LogOut, Sun, Moon, Edit3 } from 'lucide-react';
+import { Search, LogOut, Sun, Moon, Edit3, Shield } from 'lucide-react';
 
 export function Navbar({ termoBusca, setTermoBusca, onSelectCategoria, onOpenPerfil }) {
   const { user, logout } = useAuth();
@@ -84,6 +84,21 @@ export function Navbar({ termoBusca, setTermoBusca, onSelectCategoria, onOpenPer
                 </div>
                 <span style={styles.userCourse} className="user-card-course">{user.curso}</span>
               </div>
+            </button>
+          )}
+
+          {/* Atalho exclusivo para Administradores acessarem o painel */}
+          {user && (user.tipo === 'admin' || user.role === 'admin') && (
+            <button
+              onClick={() => {
+                window.history.pushState({}, '', '/admin');
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }}
+              style={styles.adminNavBtn}
+              title="Acessar Painel Administrativo"
+            >
+              <Shield size={16} color="#ffffff" style={{ marginRight: '5px' }} />
+              <span className="admin-nav-text">Painel Admin</span>
             </button>
           )}
 
@@ -243,6 +258,20 @@ const styles = {
     cursor: 'pointer',
     transition: 'all 0.15s ease',
     textAlign: 'left',
+  },
+  adminNavBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '7px 12px',
+    borderRadius: 'var(--radius-full)',
+    backgroundColor: '#15803d',
+    border: 'none',
+    color: '#ffffff',
+    fontSize: '0.78rem',
+    fontWeight: '700',
+    cursor: 'pointer',
+    boxShadow: '0 2px 6px rgba(21, 128, 61, 0.25)',
+    transition: 'background-color 0.15s ease',
   },
   avatar: {
     width: '30px',

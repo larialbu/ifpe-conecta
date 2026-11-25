@@ -6,6 +6,7 @@ dotenv.config();
 
 const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -53,6 +54,10 @@ app.use('/auth', authRoutes);
 // Rotas de publicações (suporta tanto com quanto sem prefixo /api)
 app.use('/api/posts', postRoutes);
 app.use('/posts', postRoutes);
+
+// Rotas administrativas (suporta tanto com quanto sem prefixo /api)
+app.use('/api/admin', adminRoutes);
+app.use('/admin', adminRoutes);
 
 // Tratamento de rotas de API não encontradas
 app.use((req, res) => {
